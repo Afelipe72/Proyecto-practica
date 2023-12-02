@@ -218,18 +218,32 @@ def process_polygon_zone(zones_dict, detections, frame):
 
 
 def write_csv_polygon_zone(accumulated_data):
-    global header_written_zone
+    global header_written_zone, zone_timer
     car_values_list = []
 
-    #"('test2'[{'vehicle_count': 4, 'tracker_id': 21, 'class_id': 2, 'class_names': 'carros', 'confidence': 69}])"
+    # "('test2'[{'vehicle_count': 4, 'tracker_id': 21, 'class_id': 2, 'class_names': 'carros', 'confidence': 69}])"
     for key, car_values in accumulated_data.items():
         for value in car_values:
             # items_accumulated_data = {'zone':key, **value}
-            car_values_list.append(key)
-            car_values_list.append(value)
+            zone_name = key
+            vehicle_count = value['vehicle_count']
+            tracker_id = value['tracker_id']
+            class_id = value['class_id']
+            class_names = value['class_names']
+            confidence = value['confidence']
+
+            # Append the extracted values to the list
+            car_values_list.append(zone_name)
+            car_values_list.append(vehicle_count)
+            car_values_list.append(tracker_id)
+            car_values_list.append(class_id)
+            car_values_list.append(class_names)
+            car_values_list.append(confidence)
+            car_values_list.append(format_time_elapsed)
 
     if not header_written_zone:
-        vehicles_csv_header = ['zone_name', 'passed_vehicles', 'tracker_id', 'class_id', 'class_names', 'confidence']
+        # minuto , topologia , tipo carro, nombre de la zona, conteo
+        vehicles_csv_header = ['Minuto', 'Zona', 'Conteo general', 'Tipología del vehiculo']
         with open('csv_routes.csv', 'a', newline='') as polygon_zone_csv:
             writer = csv.writer(polygon_zone_csv)
             writer.writerow(vehicles_csv_header)
@@ -246,7 +260,6 @@ def write_csv_polygon_zone(accumulated_data):
 # line_annotator = sv.LineZoneAnnotator(thickness=2, text_thickness=1, text_scale=1)
 # test.trigger(detections=detections)
 # line_annotator.annotate(frame=frame, line_counter=test)
-
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
     results = model(frame)[0]
