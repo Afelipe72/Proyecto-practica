@@ -158,8 +158,12 @@ def polygon_zone() -> dict:
         zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
         zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(0, 0, 255), thickness=4, text_thickness=8, text_scale=4)
 
-        zones_dict[polygon_zone_name] = {'zone': zone, 'annotator': zone_annotator, 'tracked_vehicles': set(),
-                                         'vehicle_count': 0}
+        zones_dict[polygon_zone_name] = {
+            'zone': zone,
+            'annotator': zone_annotator,
+            'tracked_vehicles': set(),
+            'vehicle_count': 0,
+        }
 
     return zones_dict
 
@@ -167,22 +171,20 @@ def polygon_zone() -> dict:
 zones_dict = polygon_zone()
 zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
 
-passed_vehicles_set = set()
-
+processed_objects = {}
 def process_polygon_zone(zones_dict, detections, frame):
-    processed_objects = []
-
+    global processed_objects
     for zone_name, zone_data in zones_dict.items():
         zone = zone_data['zone']
         zone_annotator = zone_data['annotator']
         tracked_vehicles = zone_data['tracked_vehicles']
         vehicle_count = zone_vehicle_count[zone_name]
 
-        print(f"Processing zone: {zone_name}")
-
         zone.trigger(detections=detections)
         mask = zone.trigger(detections=detections)
         in_zone_detections = detections[mask]
+
+        zone_objects = processed_objects.get(zone_name, [])
 
         for i, detection in enumerate(in_zone_detections):
             tracker_id = detection[4]
@@ -192,31 +194,39 @@ def process_polygon_zone(zones_dict, detections, frame):
                 zone_vehicle_count[zone_name] += 1
                 tracked_vehicles.add(tracker_id)
 
-            class_id = int(detection[3])
-            class_names = CLASS_NAMES_DICT.get(class_id)
-            confidence = round(float(detection[2]) * 100)
+                class_id = int(detection[3])
+                class_names = CLASS_NAMES_DICT.get(class_id)
+                confidence = round(float(detection[2]) * 100)
 
-            data_to_accumulate = {
-                'vehicle_count': vehicle_count,
-                'tracker_id': tracker_id,
-                'class_id': class_id,
-                'class_names': class_names,
-                'confidence': confidence,
-            }
-            processed_objects.append(data_to_accumulate)
+                data_to_accumulate = {
+                    'vehicle_count': zone_vehicle_count[zone_name],
+                    'tracker_id': tracker_id,
+                    'class_id': class_id,
+                    'class_names': class_names,
+                    'confidence': confidence
+                }
 
-        frame = zone_annotator.annotate(scene=frame)
+                zone_objects.append(data_to_accumulate)
 
-    print(
-        f"{processed_objects}")
+                # Store the objects for the current zone in the dictionary
+            processed_objects[zone_name] = zone_objects
 
+            frame = zone_annotator.annotate(scene=frame)
+
+    # print(f"{processed_objects}")
     return processed_objects
+
 
 def write_csv_polygon_zone(accumulated_data):
     global header_written_zone
+    car_values_list = []
 
-    for accumulated_data_values in accumulated_data:
-        print(accumulated_data_values)
+    #"('test2'[{'vehicle_count': 4, 'tracker_id': 21, 'class_id': 2, 'class_names': 'carros', 'confidence': 69}])"
+    for key, car_values in accumulated_data.items():
+        for value in car_values:
+            # items_accumulated_data = {'zone':key, **value}
+            car_values_list.append(key)
+            car_values_list.append(value)
 
     if not header_written_zone:
         vehicles_csv_header = ['zone_name', 'passed_vehicles', 'tracker_id', 'class_id', 'class_names', 'confidence']
@@ -226,11 +236,10 @@ def write_csv_polygon_zone(accumulated_data):
 
         header_written_zone = True
 
-
     # Open the CSV file in append mode and write the values
     with open('csv_routes.csv', 'a', newline='') as polygon_zone_csv:
         writer = csv.writer(polygon_zone_csv)
-        writer.writerow(accumulated_data)
+        writer.writerow(car_values_list)
 
 # line_zone
 # test = sv.LineZone(start=Point(2029, 704), end=Point(2262, 620))
@@ -245,7 +254,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     detections = tracker.update_with_detections(detections)
 
     global current_frame, time_elapsed, format_time_elapsed, CLASS_NAMES_DICT, zones_dict, zone_timer, accumulated_data,\
-        format_time_elapsed_test
+        format_time_elapsed_test, processed_objects
     current_frame += 1
     time_elapsed += 1 / 30
     format_time_elapsed = f"{time_elapsed: 0.3f}"
@@ -261,9 +270,8 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     format_time_elapsed_test = f"{zone_timer: 0.3f}"
     print(format_time_elapsed_test)
     if abs(float(format_time_elapsed_test) - 1.0) < 0.001:
-        print("daslklmñasklmñadmklñas")
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
-        accumulated_data = []
+        processed_objects = {}
         zone_timer = 0
 
     labels = [
