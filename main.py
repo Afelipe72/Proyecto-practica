@@ -4,7 +4,12 @@ import supervision as sv
 from supervision import Point
 from ultralytics import YOLO
 import csv
+import openpyxl
+from openpyxl import load_workbook
 
+
+excel_file_path = 'FORMATO PARA AFORO DE VEHICULOS.xlsx'
+wb = load_workbook(excel_file_path)
 
 model = YOLO("yolov8x.pt")
 tracker = sv.ByteTrack()
@@ -161,7 +166,7 @@ def polygon_zone() -> dict:
         polygon_zone_dict[polygon_zone_name] = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])
 
         zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
-        zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(0, 0, 255), thickness=4, text_thickness=8, text_scale=4)
+        zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(0, 0, 255), thickness=2, text_thickness=2, text_scale=2)
 
         zones_dict[polygon_zone_name] = {
             'zone': zone,
@@ -175,6 +180,7 @@ def polygon_zone() -> dict:
 
 zones_dict = polygon_zone()
 zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
+
 
 def process_polygon_zone(zones_dict, detections, frame):
     global processed_objects
@@ -215,7 +221,7 @@ def process_polygon_zone(zones_dict, detections, frame):
                 # Store the objects for the current zone in the dictionary
             processed_objects[zone_name] = zone_objects
 
-            frame = zone_annotator.annotate(scene=frame)
+        frame = zone_annotator.annotate(scene=frame)
 
     return processed_objects
 
@@ -224,6 +230,7 @@ def write_csv_polygon_zone(accumulated_data):
     global header_written_zone
     car_values_list = []
 
+    car_value_list_report = []
     if not header_written_zone:
         # minuto , topologia , tipo carro, nombre de la zona, conteo
         vehicles_csv_header = ['Zona', 'Minuto', 'Conteo general', 'Tipología del vehiculo']
@@ -245,9 +252,9 @@ def write_csv_polygon_zone(accumulated_data):
 
             # Append the extracted values to the list
             car_values_list.extend([zone_name, format_time_elapsed, vehicle_count, class_names])
-    #SAP
-    # for i in range(accumulated_data):
-    #     if accumulated_data == 1:
+
+            car_value_list_report.extend([zone_name, format_time_elapsed, vehicle_count, class_names])
+
             # Open the CSV file in append mode and write the values
             with open('csv_routes.csv', 'a', newline='') as polygon_zone_csv:
                 writer = csv.writer(polygon_zone_csv)
@@ -255,9 +262,40 @@ def write_csv_polygon_zone(accumulated_data):
 
             # Clear the list for the next row
             car_values_list = []
+    # print(car_value_list_report)
+    format_report_values(car_value_list_report)
 
-def write_report():
-    print("do to")
+
+def format_report_values(car_zone_value_list) -> dict:
+    # Assuming the vehicle types are always at every 4th position in the list
+    vehicle_types = car_zone_value_list[3::4]
+    # Assuming the zone timers are always at every 4th position in the list
+    zone_timers = car_zone_value_list[1::4]
+
+    # Create a dictionary to store counts and zone timers for each vehicle type
+    vehicle_type_counts = {}
+
+    for vehicle_type, zone_timer in zip(vehicle_types, zone_timers):
+        if vehicle_type not in vehicle_type_counts:
+            # If the vehicle type is not in the dictionary, add it
+            vehicle_type_counts[vehicle_type] = {'Zone timer': zone_timer, 'Count': 0}
+
+        # Add 1 to the count for the corresponding vehicle type
+        vehicle_type_counts[vehicle_type]['Count'] += 1
+
+    # Print the counts and zone timers for each vehicle type
+    for vehicle_type, counts_and_timer in vehicle_type_counts.items():
+        print(f"Vehicle Type: {vehicle_type}")
+        print(f"Zone Timer: {counts_and_timer['Zone timer']}")
+        print(f"Count: {counts_and_timer['Count']}")
+
+    return vehicle_type_counts
+
+
+def write_excel_file(vehicle_type_counts):
+    global excel_file_path, wb
+    print("FDFSDsdf")
+
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
     # Process frame
@@ -276,7 +314,6 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     time_elapsed += 1 / 30
     format_time_elapsed = f"{time_elapsed: 0.3f}"
 
-
     # Process for the raw csv values
     for car_value in range(len(detections)):
         values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
@@ -294,11 +331,10 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     zone_timer += 1 / 30
     format_time_elapsed_test = f"{zone_timer: 0.3f}"
     print(format_time_elapsed_test)
-    if abs(float(format_time_elapsed_test) - target_second_zone) < 0.001:
+    if abs(float(format_time_elapsed_test) - 1.0) < 0.001:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
         processed_objects = {}
         zone_timer = 0
-
 
     labels = [
         f"#{tracker_id} {results.names[class_id]}"
