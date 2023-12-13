@@ -6,10 +6,11 @@ from ultralytics import YOLO
 import csv
 import openpyxl
 from openpyxl import load_workbook
-
+import cv2
 
 excel_file_path = 'FORMATO PARA AFORO DE VEHICULOS.xlsx'
 wb = load_workbook(excel_file_path)
+ws = wb.active
 
 model = YOLO("yolov8x.pt")
 tracker = sv.ByteTrack()
@@ -173,6 +174,7 @@ def polygon_zone() -> dict:
             'annotator': zone_annotator,
             'tracked_vehicles': set(),
             'vehicle_count': 0,
+            'polygon_zone_dict': [x1, y1]
         }
 
     return zones_dict
@@ -188,6 +190,7 @@ def process_polygon_zone(zones_dict, detections, frame):
         zone = zone_data['zone']
         zone_annotator = zone_data['annotator']
         tracked_vehicles = zone_data['tracked_vehicles']
+        zone_coordinates = zone_data['polygon_zone_dict']
         vehicle_count = zone_vehicle_count[zone_name]
 
         zone.trigger(detections=detections)
@@ -201,7 +204,7 @@ def process_polygon_zone(zones_dict, detections, frame):
 
             if tracker_id not in tracked_vehicles:
                 # Increment the vehicle count
-                zone_vehicle_count[zone_name] += 1
+                zone_vehicle_count[zone_name] = 1
                 tracked_vehicles.add(tracker_id)
 
                 class_id = int(detection[3])
@@ -217,10 +220,13 @@ def process_polygon_zone(zones_dict, detections, frame):
                 }
 
                 zone_objects.append(data_to_accumulate)
-
                 # Store the objects for the current zone in the dictionary
             processed_objects[zone_name] = zone_objects
 
+        print(zone_name)
+        print(zone_coordinates)
+
+        cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 2, cv2.LINE_AA)
         frame = zone_annotator.annotate(scene=frame)
 
     return processed_objects
@@ -262,7 +268,7 @@ def write_csv_polygon_zone(accumulated_data):
 
             # Clear the list for the next row
             car_values_list = []
-    # print(car_value_list_report)
+
     format_report_values(car_value_list_report)
 
 
@@ -283,18 +289,30 @@ def format_report_values(car_zone_value_list) -> dict:
         # Add 1 to the count for the corresponding vehicle type
         vehicle_type_counts[vehicle_type]['Count'] += 1
 
-    # Print the counts and zone timers for each vehicle type
+    # Pass the argument to the write_excel_file method
+    write_excel_file(vehicle_type_counts)
+
+
+start_row_excel_time = 10
+
+def write_excel_file(vehicle_type_counts):
+    global excel_file_path, wb, ws, start_row_excel_time
     for vehicle_type, counts_and_timer in vehicle_type_counts.items():
         print(f"Vehicle Type: {vehicle_type}")
         print(f"Zone Timer: {counts_and_timer['Zone timer']}")
         print(f"Count: {counts_and_timer['Count']}")
 
-    return vehicle_type_counts
+        if vehicle_type == "carros" or vehicle_type == "carro":
+            ws[f'B10'] = counts_and_timer['Zone timer']
+
+            wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
 
 
-def write_excel_file(vehicle_type_counts):
-    global excel_file_path, wb
-    print("FDFSDsdf")
+
+        start_row_excel_time += 1
+
+
+
 
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
