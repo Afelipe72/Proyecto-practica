@@ -46,7 +46,8 @@ user_input_minutes_zone_timer = 0.1
 target_second_zone = user_input_minutes_zone_timer * 60
 processed_objects = {}
 
-
+vehicles_saved_in_write_excel = False
+save_vehicles_for_header = []
 def get_center_bounding_box(coordinates_in_detection) -> list:
     x_center = (coordinates_in_detection[0] + coordinates_in_detection[2]) / 2
     y_center = (coordinates_in_detection[1] + coordinates_in_detection[3]) / 2
@@ -293,26 +294,22 @@ def format_report_values(car_zone_value_list) -> dict:
     write_excel_file(vehicle_type_counts)
 
 
-start_row_excel_time = 10
 
 def write_excel_file(vehicle_type_counts):
-    global excel_file_path, wb, ws, start_row_excel_time
+    global excel_file_path, wb, ws, vehicles_saved_in_write_excel, save_vehicles_for_header
+    # Write the vehicles
     for vehicle_type, counts_and_timer in vehicle_type_counts.items():
         print(f"Vehicle Type: {vehicle_type}")
         print(f"Zone Timer: {counts_and_timer['Zone timer']}")
         print(f"Count: {counts_and_timer['Count']}")
+        if vehicle_type not in save_vehicles_for_header:
+            save_vehicles_for_header.append(vehicle_type)
 
-        if vehicle_type == "carros" or vehicle_type == "carro":
-            ws[f'B10'] = counts_and_timer['Zone timer']
-
+    for row in ws.iter_rows(min_row=9, min_col=3, max_row=9, max_col=len(save_vehicles_for_header)):
+        for cell in row:
+            print(save_vehicles_for_header)
+            cell.value = "esasedasads"
             wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
-
-
-
-        start_row_excel_time += 1
-
-
-
 
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
@@ -347,7 +344,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     process_polygon_zone(zones_dict, detections, frame)
     # Polygon zone timer
     zone_timer += 1 / 30
-    format_time_elapsed_test = f"{zone_timer: 0.3f}"
+    format_time_elapsed_test  = f"{zone_timer: 0.3f}"
     print(format_time_elapsed_test)
     if abs(float(format_time_elapsed_test) - 1.0) < 0.001:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
