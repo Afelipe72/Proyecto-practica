@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import supervision as sv
+from openpyxl.utils import get_column_letter
 from supervision import Point
 from ultralytics import YOLO
 import csv
@@ -32,6 +33,7 @@ format_time_elapsed_test = ""
 header_written_raw_csv = False
 header_written_zone = False
 CLASS_NAMES_DICT = model.model.names
+print(CLASS_NAMES_DICT)
 
 GSD = 0.08687
 frames_per_second = 0.0333
@@ -224,9 +226,6 @@ def process_polygon_zone(zones_dict, detections, frame):
                 # Store the objects for the current zone in the dictionary
             processed_objects[zone_name] = zone_objects
 
-        print(zone_name)
-        print(zone_coordinates)
-
         cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 2, cv2.LINE_AA)
         frame = zone_annotator.annotate(scene=frame)
 
@@ -294,22 +293,61 @@ def format_report_values(car_zone_value_list) -> dict:
     write_excel_file(vehicle_type_counts)
 
 
-
+counter_header_file = 0
+header_written_excel_file = False
+counter_zone_timer = 0
 def write_excel_file(vehicle_type_counts):
-    global excel_file_path, wb, ws, vehicles_saved_in_write_excel, save_vehicles_for_header
-    # Write the vehicles
-    for vehicle_type, counts_and_timer in vehicle_type_counts.items():
-        print(f"Vehicle Type: {vehicle_type}")
-        print(f"Zone Timer: {counts_and_timer['Zone timer']}")
-        print(f"Count: {counts_and_timer['Count']}")
-        if vehicle_type not in save_vehicles_for_header:
-            save_vehicles_for_header.append(vehicle_type)
+    global excel_file_path, wb, ws, vehicles_saved_in_write_excel, save_vehicles_for_header, CLASS_NAMES_DICT, \
+        counter_header_file, header_written_excel_file, counter_zone_timer
 
-    for row in ws.iter_rows(min_row=9, min_col=3, max_row=9, max_col=len(save_vehicles_for_header)):
+    # Write the header for the file
+    if not header_written_excel_file:
+        start_column_index = 3
+        # start column index to set the start value
+        for col_idx, (key, value) in enumerate(CLASS_NAMES_DICT.items(), start=start_column_index):
+            # Col idx to increase the column
+            for row in ws.iter_rows(min_row=9, min_col=col_idx, max_row=9, max_col=col_idx):
+                for cell in row:
+                    cell.value = value
+        wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
+        header_written_excel_file = True
+
+    # Time zone for the Excel file
+    start_column_index_time = 2
+    timer = 0
+    # key = carro, camion, carros
+    # value = {'Zone timer': ' 1.000', 'Count': 8}
+    for row_idx, (key, value) in enumerate(vehicle_type_counts.items(), start=start_column_index_time):
+        # print(value['Zone timer'])
+        timer = value['Zone timer']
+    for row in ws.iter_rows(min_row=counter_zone_timer + 10, min_col=2, max_row=counter_zone_timer+10, max_col=2):
         for cell in row:
-            print(save_vehicles_for_header)
-            cell.value = "esasedasads"
-            wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
+            cell.value = timer
+    wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
+    counter_zone_timer += 1
+
+    # Vehicle writer counter
+    start_column_index_counter = 4
+    # start column index to set the start value
+    for col_idx, (key, value) in enumerate(vehicle_type_counts.items(), start=start_column_index_counter):
+        print(key)
+        print(value['Count'])
+    #     # Col idx to increase the column
+    #     for row in ws.iter_rows(min_row=9, min_col=col_idx, max_row=9, max_col=col_idx):
+    #         for cell in row:
+    #             cell.value = value
+    # wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
+
+
+
+    # Write the vehicles
+    # for vehicle_type, counts_and_timer in vehicle_type_counts.items():
+    #     print(f"Vehicle Type: {vehicle_type}")
+    #     print(f"Zone Timer: {counts_and_timer['Zone timer']}")
+    #     print(f"Count: {counts_and_timer['Count']}")
+    #     if vehicle_type not in save_vehicles_for_header:
+    #         save_vehicles_for_header.append(vehicle_type)
+
 
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
@@ -344,7 +382,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     process_polygon_zone(zones_dict, detections, frame)
     # Polygon zone timer
     zone_timer += 1 / 30
-    format_time_elapsed_test  = f"{zone_timer: 0.3f}"
+    format_time_elapsed_test = f"{zone_timer: 0.3f}"
     print(format_time_elapsed_test)
     if abs(float(format_time_elapsed_test) - 1.0) < 0.001:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
