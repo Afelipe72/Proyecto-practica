@@ -12,6 +12,7 @@ import cv2
 excel_file_path = 'FORMATO PARA AFORO DE VEHICULOS.xlsx'
 wb = load_workbook(excel_file_path)
 ws = wb.active
+target_worksheet = wb['template']
 
 model = YOLO("yolov8x.pt")
 tracker = sv.ByteTrack()
@@ -33,7 +34,6 @@ format_time_elapsed_test = ""
 header_written_raw_csv = False
 header_written_zone = False
 CLASS_NAMES_DICT = model.model.names
-print(CLASS_NAMES_DICT)
 
 GSD = 0.08687
 frames_per_second = 0.0333
@@ -180,7 +180,17 @@ def polygon_zone() -> dict:
             'polygon_zone_dict': [x1, y1]
         }
 
+    create_excel_sheets(zones_dict)
+
     return zones_dict
+
+
+def create_excel_sheets(number_of_zones):
+    global wb, target_worksheet
+    for key, zone_items in number_of_zones.items():
+        new_sheet = wb.copy_worksheet(target_worksheet)
+        target_worksheet.title = key
+        wb.save(excel_file_path)
 
 
 zones_dict = polygon_zone()
@@ -272,33 +282,55 @@ def write_csv_polygon_zone(accumulated_data):
     format_report_values(car_value_list_report)
 
 
-def format_report_values(car_zone_value_list) -> dict:
+def format_report_values(car_zone_value_list):
     # Assuming the vehicle types are always at every 4th position in the list
     vehicle_types = car_zone_value_list[3::4]
     # Assuming the zone timers are always at every 4th position in the list
     zone_timers = car_zone_value_list[1::4]
+    # Assuming the zone names are always at every 4th position in the list
+    zone_names = car_zone_value_list[::4]
 
-    # Create a dictionary to store counts and zone timers for each vehicle type
-    vehicle_type_counts = {}
+    # Create a dictionary to store counts and zone timers for each zone
+    zone_counts = {}
 
-    for vehicle_type, zone_timer in zip(vehicle_types, zone_timers):
-        if vehicle_type not in vehicle_type_counts:
-            # If the vehicle type is not in the dictionary, add it
-            vehicle_type_counts[vehicle_type] = {'Zone timer': zone_timer, 'Count': 0}
+    for vehicle_type, zone_timer, zone_name in zip(vehicle_types, zone_timers, zone_names):
+        if zone_name not in zone_counts:
+            # If the zone name is not in the dictionary, add it
+            zone_counts[zone_name] = {}
 
-        # Add 1 to the count for the corresponding vehicle type
-        vehicle_type_counts[vehicle_type]['Count'] += 1
+        if vehicle_type not in zone_counts[zone_name]:
+            # If the vehicle type is not in the inner dictionary, add it
+            zone_counts[zone_name][vehicle_type] = {'Zone timer': zone_timer, 'Count': 0}
+
+        # Add 1 to the count for the corresponding vehicle type in the given zone
+        zone_counts[zone_name][vehicle_type]['Count'] += 1
 
     # Pass the argument to the write_excel_file method
-    write_excel_file(vehicle_type_counts)
+    write_excel_file(zone_counts)
 
 
 counter_header_file = 0
 header_written_excel_file = False
 counter_zone_timer = 0
+vehicle_counter_zone_timer = 0
+
+
 def write_excel_file(vehicle_type_counts):
     global excel_file_path, wb, ws, vehicles_saved_in_write_excel, save_vehicles_for_header, CLASS_NAMES_DICT, \
-        counter_header_file, header_written_excel_file, counter_zone_timer
+        counter_header_file, header_written_excel_file, counter_zone_timer, vehicle_counter_zone_timer
+
+    # Write the vehicles
+    # {'test': {'carros': {'Zone timer': ' 1.000', 'Count': 8}},
+    # 'test2': {'carros': {'Zone timer': ' 1.000', 'Count': 1}}}
+
+    # for zone_name, zone_items in vehicle_type_counts.items():
+    #     print(f"Zone_name: {zone_name}")
+    #     for vehicle_type, zone_timer_and_count in zone_items.items():
+    #         print(f"Vehicle Type: {vehicle_type}")
+    #         for zone_timer, vehicle_count in zone_timer_and_count.items():
+    #             print(f"Zone Timer: {zone_timer}")
+    #             print(f"Count: {vehicle_count}")
+
 
     # Write the header for the file
     if not header_written_excel_file:
@@ -312,41 +344,47 @@ def write_excel_file(vehicle_type_counts):
         wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
         header_written_excel_file = True
 
+
     # Time zone for the Excel file
     start_column_index_time = 2
     timer = 0
-    # key = carro, camion, carros
-    # value = {'Zone timer': ' 1.000', 'Count': 8}
-    for row_idx, (key, value) in enumerate(vehicle_type_counts.items(), start=start_column_index_time):
-        # print(value['Zone timer'])
-        timer = value['Zone timer']
+    for zone_name, zone_items in vehicle_type_counts.items():
+        for vehicle_type, zone_timer_and_count in zone_items.items():
+            timer = zone_timer_and_count['Zone timer']
     for row in ws.iter_rows(min_row=counter_zone_timer + 10, min_col=2, max_row=counter_zone_timer+10, max_col=2):
         for cell in row:
             cell.value = timer
     wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
     counter_zone_timer += 1
 
+
+
     # Vehicle writer counter
-    start_column_index_counter = 4
+    start_column_index_counter = 3
+    vehicle_counter_tracker = 0
+    # Puts the vehicle type in a list
+    header_order = [CLASS_NAMES_DICT[i] for i in range(len(CLASS_NAMES_DICT))]
+
     # start column index to set the start value
-    for col_idx, (key, value) in enumerate(vehicle_type_counts.items(), start=start_column_index_counter):
-        print(key)
-        print(value['Count'])
-    #     # Col idx to increase the column
-    #     for row in ws.iter_rows(min_row=9, min_col=col_idx, max_row=9, max_col=col_idx):
-    #         for cell in row:
-    #             cell.value = value
-    # wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
+    for zone_name, zone_items in vehicle_type_counts.items():
+        for vehicle_type, zone_timer_and_count in zone_items.items():
+            # Find the index of the current vehicle type in the header order
+            col_idx = header_order.index(vehicle_type) + start_column_index_counter
+
+            # Get the count value for the current vehicle type
+            vehicle_counter_tracker = zone_timer_and_count['Count']
+
+            # Write the count value to the corresponding cell in the Excel file
+            for row_idx in range(vehicle_counter_zone_timer + 10, vehicle_counter_zone_timer + 11):
+                for cell in ws.iter_cols(min_col=col_idx, max_col=col_idx, min_row=row_idx, max_row=row_idx):
+                    for c in cell:
+                        c.value = vehicle_counter_tracker
+
+            wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
+    vehicle_counter_zone_timer += 1
 
 
 
-    # Write the vehicles
-    # for vehicle_type, counts_and_timer in vehicle_type_counts.items():
-    #     print(f"Vehicle Type: {vehicle_type}")
-    #     print(f"Zone Timer: {counts_and_timer['Zone timer']}")
-    #     print(f"Count: {counts_and_timer['Count']}")
-    #     if vehicle_type not in save_vehicles_for_header:
-    #         save_vehicles_for_header.append(vehicle_type)
 
 
 
