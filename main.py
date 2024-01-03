@@ -2,7 +2,7 @@ from modules.helpers import *
 
 from modules.variables import *
 
-from modules.variables import format_time_elapsed
+from modules.variables import format_time_elapsed, current_frame
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
     # Process frame
@@ -10,9 +10,10 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     detections = sv.Detections.from_ultralytics(results)
     detections = tracker.update_with_detections(detections)
     # Set variables
-    global current_frame, time_elapsed, CLASS_NAMES_DICT, zones_dict, zone_timer, accumulated_data, \
+    global time_elapsed, CLASS_NAMES_DICT, zones_dict, zone_timer, accumulated_data, \
         format_time_elapsed_test, processed_objects, time_elapsed_reset
-    current_frame += 1
+
+    modules.variables.current_frame += 1
 
     time_elapsed_reset += 1 / 30
     format_time_elapsed_reset = f"{time_elapsed_reset: 0.3f}"
@@ -42,7 +43,6 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
         modules.variables.processed_objects = {}
         zone_timer = 0
-
 
     labels = [
         f"#{tracker_id} {results.names[class_id]}"

@@ -16,11 +16,9 @@ from modules.variables import *
 
 from modules.constants import *
 import modules.variables
-from modules.variables import *
-from modules.variables import current_frame
-from modules.variables import format_time_elapsed
+from modules.variables import format_time_elapsed, current_frame, vx, vy, vt
 from modules.files import *
-from modules.files import excel_file_path, path_report_copy
+
 
 def get_center_bounding_box(coordinates_in_detection) -> list:
     x_center = (coordinates_in_detection[0] + coordinates_in_detection[2]) / 2
@@ -60,8 +58,6 @@ def calculate_acceleration(speed_x_y_total_previous_frame, speed_x_y_total_curre
 
 
 def format_csv_values(tracker_id, bounding_box_anchors, class_id, confidence_value) -> list:
-    global coordinates, previous_frame_bounding_box, previous_speeds_to_acceleration, GSD, \
-         vx, vy, vt, ax, ay, at
     car_id = tracker_id
     bounding_box_center = get_center_bounding_box(bounding_box_anchors)
     coordinates[car_id] = bounding_box_center
@@ -158,14 +154,14 @@ def polygon_zone() -> dict:
 
 
 def create_excel_sheets(number_of_zones):
-    shutil.copy(modules.files.excel_file_path, modules.files.path_report_copy)
-    wb = load_workbook(modules.files.path_report_copy)
+    shutil.copy(excel_file_path, path_report_copy)
+    wb = load_workbook(path_report_copy)
     target_worksheet = wb['template']
     for key, zone_items in number_of_zones.items():
         new_sheet = wb.copy_worksheet(target_worksheet)
         new_sheet.title = key
     del wb['template']
-    wb.save(modules.files.path_report_copy)
+    wb.save(path_report_copy)
 
 
 zones_dict = polygon_zone()
@@ -264,7 +260,6 @@ def format_report_values(car_zone_value_list):
     # Assuming the zone names are always at every 4th position in the list
     zone_names = car_zone_value_list[::4]
 
-
     # Create a dictionary to store counts and zone timers for each zone
     zone_counts = {}
 
@@ -286,14 +281,12 @@ def format_report_values(car_zone_value_list):
 
 
 counter_header_file = 0
-header_written_excel_file = False
 counter_zone_timer = 0
 vehicle_counter_zone_timer = 0
 
 
 def write_excel_file(vehicle_type_counts):
-    global excel_file_path, wb, ws, vehicles_saved_in_write_excel, save_vehicles_for_header, CLASS_NAMES_DICT, \
-        counter_header_file, header_written_excel_file, counter_zone_timer, vehicle_counter_zone_timer
+    global counter_header_file, counter_zone_timer, vehicle_counter_zone_timer
 
     print(vehicle_type_counts)
     # Write the vehicles
@@ -307,11 +300,14 @@ def write_excel_file(vehicle_type_counts):
     #         for zone_timer, vehicle_count in zone_timer_and_count.items():
     #             print(f"Zone Timer: {zone_timer}")
     #             print(f"Count: {vehicle_count}")
-
+    wb = load_workbook(path_report_copy)
+    ws = wb.active
 
     # Write the header for the file
-    for zone_name in vehicle_type_counts.items():
-            if not header_written_excel_file:
+    for zone_name, _ in vehicle_type_counts.items():
+        for sheet in wb.worksheets:
+            if zone_name == sheet.title:
+                ws = wb[zone_name]
                 start_column_index = 3
                 # start column index to set the start value
                 for col_idx, (key, value) in enumerate(CLASS_NAMES_DICT.items(), start=start_column_index):
@@ -319,49 +315,45 @@ def write_excel_file(vehicle_type_counts):
                     for row in ws.iter_rows(min_row=9, min_col=col_idx, max_row=9, max_col=col_idx):
                         for cell in row:
                             cell.value = value
-                wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
-                header_written_excel_file = True
-
+    wb.save(path_report_copy)
 
     # Time zone for the Excel file
     timer = 0
-    for zone_name, zone_items in vehicle_type_counts.items():
-        for vehicle_type, zone_timer_and_count in zone_items.items():
-            timer = zone_timer_and_count['Zone timer']
-    for row in ws.iter_rows(min_row=counter_zone_timer + 10, min_col=2, max_row=counter_zone_timer+10, max_col=2):
-        for cell in row:
-            cell.value = timer
-        wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
-        counter_zone_timer += 1
-
-
+    for zone_name_w, _ in vehicle_type_counts.items():
+        for sheet in wb.worksheets:
+            if zone_name_w == sheet.title:
+                ws = wb[zone_name_w]
+                for zone_name, zone_items in vehicle_type_counts.items():
+                    for vehicle_type, zone_timer_and_count in zone_items.items():
+                        timer = zone_timer_and_count['Zone timer']
+                for row in ws.iter_rows(min_row=counter_zone_timer + 10, min_col=2, max_row=counter_zone_timer+10, max_col=2):
+                    for cell in row:
+                        cell.value = timer
+    counter_zone_timer += 1
+    wb.save(path_report_copy)
 
     # Vehicle writer counter
     start_column_index_counter = 3
     vehicle_counter_tracker = 0
     # Puts the vehicle type in a list
     header_order = [CLASS_NAMES_DICT[i] for i in range(len(CLASS_NAMES_DICT))]
-
     # start column index to set the start value
     for zone_name, zone_items in vehicle_type_counts.items():
-        for vehicle_type, zone_timer_and_count in zone_items.items():
-            # Find the index of the current vehicle type in the header order
-            col_idx = header_order.index(vehicle_type) + start_column_index_counter
-
-            # Get the count value for the current vehicle type
-            vehicle_counter_tracker = zone_timer_and_count['Count']
-
-            # Write the count value to the corresponding cell in the Excel file
-            for row_idx in range(vehicle_counter_zone_timer + 10, vehicle_counter_zone_timer + 11):
-                for cell in ws.iter_cols(min_col=col_idx, max_col=col_idx, min_row=row_idx, max_row=row_idx):
-                    for c in cell:
-                        c.value = vehicle_counter_tracker
-
-            wb.save('FORMATO PARA AFORO DE VEHICULOS.xlsx')
+        for sheet in wb.worksheets:
+            if zone_name == sheet.title:
+                ws = wb[zone_name]
+                for vehicle_type, zone_timer_and_count in zone_items.items():
+                    # Find the index of the current vehicle type in the header order
+                    col_idx = header_order.index(vehicle_type) + start_column_index_counter
+                    # Get the count value for the current vehicle type
+                    vehicle_counter_tracker = zone_timer_and_count['Count']
+                    # Write the count value to the corresponding cell in the Excel file
+                    for row_idx in range(vehicle_counter_zone_timer + 10, vehicle_counter_zone_timer + 11):
+                        for cell in ws.iter_cols(min_col=col_idx, max_col=col_idx, min_row=row_idx, max_row=row_idx):
+                            for c in cell:
+                                c.value = vehicle_counter_tracker
+                    wb.save(path_report_copy)
     vehicle_counter_zone_timer += 1
-
-
-
 
 
 tracker = sv.ByteTrack()
