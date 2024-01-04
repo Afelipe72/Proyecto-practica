@@ -73,7 +73,7 @@ def format_csv_values(tracker_id, bounding_box_anchors, class_id, confidence_val
         if car_id in accelerations_to_csv:
             ax, ay, at = accelerations_to_csv[car_id]
 
-    csv_values = [current_frame, format_time_elapsed, class_id,
+    csv_values = [modules.variables.current_frame, modules.variables.format_time_elapsed, class_id,
                   confidence_value * 100, car_id, bounding_box_center[0],
                   bounding_box_center[1], bounding_box_center[0] * GSD, bounding_box_center[1] * GSD,
                   vx, vy, vt, ax, ay, at
@@ -138,14 +138,14 @@ def polygon_zone() -> dict:
         polygon_zone_dict[polygon_zone_name] = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])
 
         zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
-        zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(0, 0, 255), thickness=2, text_thickness=2, text_scale=2)
+        zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(255, 225, 6), thickness=2, text_thickness=1, text_scale=1, text_padding=0)
 
         zones_dict[polygon_zone_name] = {
             'zone': zone,
             'annotator': zone_annotator,
             'tracked_vehicles': set(),
             'vehicle_count': 0,
-            'polygon_zone_dict': [x1, y1]
+            'polygon_zone_dict': [x2 + 60, y2 + 10]
         }
 
         create_excel_sheets(zones_dict)
@@ -206,7 +206,7 @@ def process_polygon_zone(zones_dict, detections, frame):
                 # Store the objects for the current zone in the dictionary
             modules.variables.processed_objects[zone_name] = zone_objects
 
-        cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 2, cv2.LINE_AA)
+        cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 255, 255), 2, cv2.LINE_AA)
         frame = zone_annotator.annotate(scene=frame)
 
     return modules.variables.processed_objects
@@ -219,7 +219,7 @@ def write_csv_polygon_zone(accumulated_data):
     car_value_list_report = []
     if not header_written_zone:
         # minuto , topologia , tipo carro, nombre de la zona, conteo
-        vehicles_csv_header = ['Zona', 'Minuto', 'Conteo general', 'Tipología del vehiculo']
+        vehicles_csv_header = ['Zona', 'Minuto', 'Conteo general', 'Tipología del vehiculo', 'ID Unico']
         with open('csv_routes.csv', 'a', newline='') as polygon_zone_csv:
             writer = csv.writer(polygon_zone_csv)
             writer.writerow(vehicles_csv_header)
@@ -237,7 +237,7 @@ def write_csv_polygon_zone(accumulated_data):
             confidence = value['confidence']
 
             # Append the extracted values to the list
-            car_values_list.extend([zone_name, modules.variables.format_time_elapsed, vehicle_count, class_names])
+            car_values_list.extend([zone_name, modules.variables.format_time_elapsed, vehicle_count, class_names, tracker_id])
 
             car_value_list_report.extend([zone_name, modules.variables.format_time_elapsed, vehicle_count, class_names])
 

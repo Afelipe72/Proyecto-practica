@@ -1,8 +1,9 @@
+import modules.variables
 from modules.helpers import *
 
 from modules.variables import *
-
 from modules.variables import format_time_elapsed, current_frame
+
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
     # Process frame
@@ -14,10 +15,11 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         format_time_elapsed_test, processed_objects, time_elapsed_reset
 
     modules.variables.current_frame += 1
-
     time_elapsed_reset += 1 / 30
     format_time_elapsed_reset = f"{time_elapsed_reset: 0.3f}"
     format_time_elapsed_reset_to_float = float(format_time_elapsed_reset)
+
+    # sv.plot_image(image=frame, size=(16, 16))
 
     time_elapsed += 1 / 30
     modules.variables.format_time_elapsed = f"{time_elapsed: 0.3f}"
