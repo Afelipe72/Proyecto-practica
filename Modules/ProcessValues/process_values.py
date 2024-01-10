@@ -1,7 +1,7 @@
 import supervision as sv
 import numpy as np
 import cv2
-
+import openpyxl
 
 # Method: process_polygon_zone
 from Modules.Values.variables import processed_objects
@@ -27,8 +27,9 @@ from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
 
 
 def gooey_receiver(args=None):
-
-
+    # receives the Excel file with the coordinates
+    Modules.Values.files.excel_coordinates = openpyxl.load_workbook(f"{args.Excel}")
+    yolo_model = args.YOLO
     sv.process_video(
         source_path=f"{args.video}",
         target_path="result.mp4",
@@ -36,7 +37,8 @@ def gooey_receiver(args=None):
     )
 
 
-def polygon_zone() -> dict:
+def polygon_zone(excel_coordinates) -> tuple:
+
     polygon_zone_dict = {}
     video_info = sv.VideoInfo.from_video_path("vehicle-counting_calle_100.mp4")
     number_of_entries = 1
@@ -71,11 +73,12 @@ def polygon_zone() -> dict:
 
         create_excel_sheets(zones_dict)
 
-    return zones_dict
+    zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
+
+    return zones_dict, zone_vehicle_count
 
 
-zones_dict = polygon_zone()
-zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
+zones_dict, zone_vehicle_count = polygon_zone(Modules.Values.files.excel_coordinates)
 
 
 def process_polygon_zone(zones_dict, detections, frame):

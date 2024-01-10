@@ -19,7 +19,7 @@ def main():
     # Choose .pt model
     parser.add_argument("YOLO",  help="Seleccione el archivo .pt para realizar la inferencia", widget='FileChooser')
     # Choose CSV file
-    parser.add_argument("CSV", help="Seleccione el archivo con las coordenadas", widget='FileChooser')
+    parser.add_argument("Excel", help="Seleccione el archivo con las coordenadas", widget='FileChooser')
 
     # Execute callback function
 
