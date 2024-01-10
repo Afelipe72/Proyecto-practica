@@ -18,6 +18,9 @@ def main():
     parser.add_argument("video", help="Seleccione el video para realizar el aforo", widget='FileChooser')
     # Choose .pt model
     parser.add_argument("YOLO",  help="Seleccione el archivo .pt para realizar la inferencia", widget='FileChooser')
+    # Choose CSV file
+    parser.add_argument("CSV", help="Seleccione el archivo con las coordenadas", widget='FileChooser')
+
     # Execute callback function
 
     args = parser.parse_args()

@@ -1,10 +1,11 @@
 # Method: format_csv_values
 import Modules
 from Modules.CalculateValues.calculate_values import get_center_bounding_box, calculate_speed, calculate_acceleration
-from Modules.Values.variables import coordinates, previous_frame_bounding_box, previous_speeds_to_acceleration, current_frame, format_time_elapsed, vx, vy, vt, ax, ay, at
+from Modules.Values.variables import coordinates, format_time_elapsed, previous_frame_bounding_box, previous_speeds_to_acceleration, current_frame, vx, vy, vt, ax, ay, at
 from Modules.Values.constants import GSD
+
 # Method: format_report_values
-from Modules.WriteValuesOnFiles.write_values_on_files import write_excel_file
+from Modules.WriteValuesOnFiles.write_excel_file import write_excel_file
 
 
 def format_csv_values(tracker_id, bounding_box_anchors, class_id, confidence_value) -> list:
@@ -23,10 +24,10 @@ def format_csv_values(tracker_id, bounding_box_anchors, class_id, confidence_val
         if car_id in accelerations_to_csv:
             Modules.Values.variables.ax, Modules.Values.variables.ay, Modules.Values.variables.at = accelerations_to_csv[car_id]
 
-    csv_values = [current_frame, format_time_elapsed, class_id,
+    csv_values = [Modules.Values.variables.current_frame, Modules.Values.variables.format_time_elapsed, class_id,
                   confidence_value * 100, car_id, bounding_box_center[0],
                   bounding_box_center[1], bounding_box_center[0] * GSD, bounding_box_center[1] * GSD,
-                  vx, vy, vt, ax, ay, at
+                  Modules.Values.variables.vx, Modules.Values.variables.vy, Modules.Values.variables.vt, Modules.Values.variables.ax, Modules.Values.variables.ay, Modules.Values.variables.at
                   ]
     # speed
     for car_id in coordinates:
