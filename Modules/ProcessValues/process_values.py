@@ -2,7 +2,7 @@ import supervision as sv
 import numpy as np
 import cv2
 import openpyxl
-
+from openpyxl import load_workbook
 # Method: process_polygon_zone
 from Modules.Values.variables import processed_objects
 # from Modules.Values.declare_polygon_zone import zone_vehicle_count
@@ -21,6 +21,7 @@ from Modules.Values.constants import target_second_csv_raw, CLASS_NAMES_DICT
 from Modules.Values.variables import processed_objects
 #from Modules.Values.declare_polygon_zone import zone_vehicle_count
 from Modules.Values.constants import CLASS_NAMES_DICT
+from Modules.Values.files import excel_file_path_coordinates
 
 # Method: polygon_zone
 from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
@@ -28,8 +29,12 @@ from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
 
 def gooey_receiver(args=None):
     # receives the Excel file with the coordinates
-    Modules.Values.files.excel_coordinates = openpyxl.load_workbook(f"{args.Excel}")
+    # Modules.Values.files = f"{args.Excel}"
     yolo_model = args.YOLO
+
+
+    video_info_test = sv.VideoInfo.from_video_path(args.video)
+
     sv.process_video(
         source_path=f"{args.video}",
         target_path="result.mp4",
@@ -37,48 +42,49 @@ def gooey_receiver(args=None):
     )
 
 
-def polygon_zone(excel_coordinates) -> tuple:
-
+def polygon_zone() -> dict:
     polygon_zone_dict = {}
     video_info = sv.VideoInfo.from_video_path("vehicle-counting_calle_100.mp4")
-    number_of_entries = 1
 
     zones_dict = {}  # Dictionary to store zones and their annotators
 
-    for i in range(1, number_of_entries + 1):
-        polygon_zone_name = "test"
-        x1 = 866
-        y1 = 1433
+    wb = load_workbook(excel_file_path_coordinates)
+    ws = wb.active
 
-        x2 = 981
-        y2 = 1471
+    num_rows = ws.max_row
+    num_columns = ws.max_column
 
-        x3 = 950
-        y3 = 1568
+    for row in ws.iter_rows(min_row=2, min_col=1, max_row=num_rows, max_col=num_columns):
+        list_test = []
+        polygon_zone_name = None
+        for cell in row:
+            if cell.column == 1:
+                polygon_zone_name = cell.value
+            else:
+                list_test.append(int(cell.value))
+        if polygon_zone_name is not None:
+            # Assuming the values are in pairs (x, y), adjust accordingly
+            values = np.array(list(zip(list_test[::2], list_test[1::2])))
+            polygon_zone_dict[polygon_zone_name] = values
 
-        x4 = 834
-        y4 = 1534
-        polygon_zone_dict[polygon_zone_name] = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])
+            zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
+            zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(255, 225, 6), thickness=2, text_thickness=2, text_scale=2)
 
-        zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
-        zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(255, 225, 6), thickness=2, text_thickness=1, text_scale=1, text_padding=0)
+            zones_dict[polygon_zone_name] = {
+                'zone': zone,
+                'annotator': zone_annotator,
+                'tracked_vehicles': set(),
+                'vehicle_count': 0,
+                'polygon_zone_dict': [list_test[2] + 60, list_test[3] + 10]
+            }
 
-        zones_dict[polygon_zone_name] = {
-            'zone': zone,
-            'annotator': zone_annotator,
-            'tracked_vehicles': set(),
-            'vehicle_count': 0,
-            'polygon_zone_dict': [x2 + 60, y2 + 10]
-        }
+            create_excel_sheets(zones_dict)
 
-        create_excel_sheets(zones_dict)
-
-    zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
-
-    return zones_dict, zone_vehicle_count
+    return zones_dict
 
 
-zones_dict, zone_vehicle_count = polygon_zone(Modules.Values.files.excel_coordinates)
+zones_dict = polygon_zone()
+zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
 
 
 def process_polygon_zone(zones_dict, detections, frame):
