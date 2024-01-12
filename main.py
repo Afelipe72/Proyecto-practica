@@ -22,7 +22,6 @@ def main():
     parser.add_argument("Excel", help="Seleccione el archivo con las coordenadas", widget='FileChooser')
 
     # Execute callback function
-
     args = parser.parse_args()
     gooey_receiver(args)
 

@@ -23,16 +23,17 @@ from Modules.Values.variables import processed_objects
 from Modules.Values.constants import CLASS_NAMES_DICT
 from Modules.Values.files import excel_file_path_coordinates
 
+
 # Method: polygon_zone
 from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
 
 
 def gooey_receiver(args=None):
     # receives the Excel file with the coordinates
-    # Modules.Values.files = f"{args.Excel}"
+    Modules.Values.files.excel_file_path_coordinates = f"{args.Excel}"
     yolo_model = args.YOLO
-
-
+    Modules.Values.files.video_info_test = f"{args.video}"
+    print(Modules.Values.files.video_info_test)
     video_info_test = sv.VideoInfo.from_video_path(args.video)
 
     sv.process_video(
@@ -44,7 +45,7 @@ def gooey_receiver(args=None):
 
 def polygon_zone() -> dict:
     polygon_zone_dict = {}
-    video_info = sv.VideoInfo.from_video_path("vehicle-counting_calle_100.mp4")
+    video_info = sv.VideoInfo.from_video_path("video_heroes_largo.mp4")
 
     zones_dict = {}  # Dictionary to store zones and their annotators
 
@@ -68,7 +69,7 @@ def polygon_zone() -> dict:
             polygon_zone_dict[polygon_zone_name] = values
 
             zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
-            zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(255, 225, 6), thickness=2, text_thickness=2, text_scale=2)
+            zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(255, 225, 6), thickness=1, text_thickness=1, text_scale=1, text_padding=0)
 
             zones_dict[polygon_zone_name] = {
                 'zone': zone,
@@ -145,14 +146,14 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
 
     Modules.Values.variables.current_frame += 1
 
-    Modules.Values.variables.time_elapsed_reset += 1 / 30
+    Modules.Values.variables.time_elapsed_reset += 1 / 24
     format_time_elapsed_reset = f"{Modules.Values.variables.time_elapsed_reset: 0.3f}"
     format_time_elapsed_reset_to_float = float(format_time_elapsed_reset)
 
     # sv.plot_image(image=frame, size=(16, 16))
 
     # For the raw_csv without resetting
-    Modules.Values.variables.time_elapsed += 1 / 30
+    Modules.Values.variables.time_elapsed += 1 / 24
     Modules.Values.variables.format_time_elapsed = f"{Modules.Values.variables.time_elapsed: 0.3f}"
 
     # Process for the raw csv Values
@@ -160,20 +161,20 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
                                           CLASS_NAMES_DICT.get(detections.class_id[car_value]), detections.confidence[car_value])
         # writes value
-        if format_time_elapsed_reset_to_float == Modules.Values.constants.target_second_csv_raw:
+        if format_time_elapsed_reset_to_float == 0.042:  #Modules.Values.constants.target_second_csv_raw
             write_values_on_csv_raw(values_to_csv)
     # resets value
     print(format_time_elapsed_reset_to_float)
-    if format_time_elapsed_reset_to_float == Modules.Values.constants.target_second_csv_raw:
+    if format_time_elapsed_reset_to_float == 0.042:
         Modules.Values.variables.time_elapsed_reset = 0
 
     # Process the polygon zone
     process_polygon_zone(zones_dict, detections, frame)
     # Polygon zone timer
-    Modules.Values.variables.zone_timer += 1 / 30
+    Modules.Values.variables.zone_timer += 1 / 24
     Modules.Values.variables.format_time_elapsed_test = f"{Modules.Values.variables.zone_timer: 0.3f}"
     print(Modules.Values.variables.format_time_elapsed_test)
-    if abs(float(Modules.Values.variables.format_time_elapsed_test) - 1.0) < 0.001:
+    if abs(float(Modules.Values.variables.format_time_elapsed_test) - 60) < 0.001:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
         Modules.Values.variables.processed_objects = {}
         Modules.Values.variables.zone_timer = 0
