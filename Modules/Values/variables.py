@@ -21,5 +21,5 @@ counter_header_file = 0
 counter_zone_timer = 0
 vehicle_counter_zone_timer = 0
 
-
+header_written_process_polygon_zone = False
 

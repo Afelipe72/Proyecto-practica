@@ -1,28 +1,29 @@
 from gooey import Gooey, GooeyParser
 
+import Modules.Values.constants
 from Modules.ProcessValues.process_values import gooey_receiver
 from Modules.Values.constants import GSD, user_input_minutes_raw_csv
 
 
-@Gooey(program_name="Conteo vehícular", default_size=(1020, 610), language='spanish')
+@Gooey(program_name="Conteo Vehicular", default_size=(1020, 610), language='spanish')
 def main():
-    # CLI to GUI
+    # Gooey GUI Configuration
     parser = GooeyParser()
-    # Optional parameter "--"
-    # Arguments for the GUI to use
-    # GSD Argument
-    parser.add_argument("Ground Sampling Distance (GSD)", type=float, help="Inserte el valor del GSD (metros)", default= GSD)
-    # Target second Argument
-    parser.add_argument("Frecuencia de toma del muestreo", type=float, help="Inserte la frecuencia de toma de datos (minutos)", default=user_input_minutes_raw_csv)
-    # Choose video argument
-    parser.add_argument("video", help="Seleccione el video para realizar el aforo", widget='FileChooser')
-    # Choose .pt model
-    parser.add_argument("YOLO",  help="Seleccione el archivo .pt para realizar la inferencia", widget='FileChooser')
-    # Choose CSV file
-    parser.add_argument("Excel", help="Seleccione el archivo con las coordenadas", widget='FileChooser')
 
-    # Execute callback function
+    # Input Parameters
+    parser.add_argument("GSD", type=float, help="GSD (metros)", action="store",)
+    parser.add_argument("Frecuencia", type=float, help="Frecuencia de toma de datos general (minutos)", action="store")
+    parser.add_argument("Rutas", type=float, help="Frecuencia de toma de datos para las rutas (minutos)", action="store")
+
+    # File Selection
+    parser.add_argument("Video", help="Seleccione el video para el aforo", widget='FileChooser')
+    parser.add_argument("Modelo", help="Seleccione el archivo .pt para la inferencia YOLO", widget='FileChooser')
+    parser.add_argument("Coordenadas", help="Seleccione el archivo con las coordenadas", widget='FileChooser')
+
+    # Parse the arguments
     args = parser.parse_args()
+
+    # Process the input
     gooey_receiver(args)
 
 
