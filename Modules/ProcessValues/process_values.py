@@ -15,7 +15,7 @@ from Modules.Values.variables import current_frame, time_elapsed_reset, time_ela
 #from Modules.Values.declare_polygon_zone import zones_dict
 from Modules.FormatValues.format_values import format_csv_values
 from Modules.WriteValuesOnFiles.write_values_on_files import write_values_on_csv_raw, write_csv_polygon_zone
-from Modules.Values.constants import target_second_csv_raw, CLASS_NAMES_DICT
+from Modules.Values.constants import  CLASS_NAMES_DICT
 
 # Method: process_polygon_zone
 from Modules.Values.variables import processed_objects
@@ -31,14 +31,16 @@ from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
 def gooey_receiver(args=None):
     # Receives the Excel file with the coordinates
     Modules.Values.files.excel_file_path_coordinates = f"{args.Coordenadas}"
-    # Receives the Yolo model with the coordinates
+    # Receives the Yolo model
     yolo_model = args.Modelo
+    # Receives the GSD
+    Modules.Values.constants.GSD = args.GSD
     # Sets the video resolution
     Modules.Values.files.video_info_resolution = f"{args.Video}"
 
     # Sets variables
-    Modules.Values.constants.GSD = args.GSD
-    Modules.Values.constants.user_input_minutes_raw_csv = args.Frecuencia * 60  # *60 to convert to minutes
+    # Modules.Values.constants.GSD = args.GSD
+    # Modules.Values.constants.user_input_minutes_raw_csv = args.Frecuencia * 60  # *60 to convert to minutes
     # Modules.Values.constants.GSD = args.Rutas
 
     sv.process_video(
@@ -87,7 +89,6 @@ def polygon_zone() -> dict:
             create_excel_sheets(zones_dict)
 
     return zones_dict
-
 
 
 def process_polygon_zone(zones_dict, detections, frame):
@@ -140,6 +141,7 @@ label_annotator = sv.LabelAnnotator()
 trace_annotator = sv.TraceAnnotator()
 
 
+
 zones_dict = None
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
     global zones_dict
@@ -153,14 +155,14 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
 
     Modules.Values.variables.current_frame += 1
 
-    Modules.Values.variables.time_elapsed_reset += 1 / 30
+    Modules.Values.variables.time_elapsed_reset += 1 / 24
     format_time_elapsed_reset = f"{Modules.Values.variables.time_elapsed_reset: 0.3f}"
     format_time_elapsed_reset_to_float = float(format_time_elapsed_reset)
 
     # sv.plot_image(image=frame, size=(16, 16))
 
     # For the raw_csv without resetting
-    Modules.Values.variables.time_elapsed += 1 / 30
+    Modules.Values.variables.time_elapsed += 1 / 24
     Modules.Values.variables.format_time_elapsed = f"{Modules.Values.variables.time_elapsed: 0.3f}"
 
     # Process for the raw csv Values
@@ -168,20 +170,20 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
                                           CLASS_NAMES_DICT.get(detections.class_id[car_value]), detections.confidence[car_value])
         # writes value
-        if format_time_elapsed_reset_to_float == Modules.Values.constants.user_input_minutes_raw_csv:  #Modules.Values.constants.target_second_csv_raw
+        if format_time_elapsed_reset_to_float == 1.0:  #Modules.Values.constants.target_second_csv_raw
             write_values_on_csv_raw(values_to_csv)
     # resets value
-    print(Modules.Values.constants.user_input_minutes_raw_csv)
-    if format_time_elapsed_reset_to_float == Modules.Values.constants.user_input_minutes_raw_csv:
+    print(format_time_elapsed_reset_to_float)
+    if format_time_elapsed_reset_to_float == 1.0: # Modules.Values.constants.user_input_minutes_raw_csv
         Modules.Values.variables.time_elapsed_reset = 0
 
     # Process the polygon zone
     process_polygon_zone(zones_dict, detections, frame)
     # Polygon zone timer
-    Modules.Values.variables.zone_timer += 1 / 30
+    Modules.Values.variables.zone_timer += 1 / 24
     Modules.Values.variables.format_time_elapsed_test = f"{Modules.Values.variables.zone_timer: 0.3f}"
     print(Modules.Values.variables.format_time_elapsed_test)
-    if abs(float(Modules.Values.variables.format_time_elapsed_test) - 1.0) < 0.001:
+    if abs(float(Modules.Values.variables.format_time_elapsed_test) - 60) < 0.001:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
         Modules.Values.variables.processed_objects = {}
         Modules.Values.variables.zone_timer = 0

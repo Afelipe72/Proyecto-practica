@@ -1,9 +1,9 @@
 from Modules.Values.files import model
 
-GSD = 0
+GSD = None
 # Calle 100 GSD: 0.08687
-
-frames_per_second = 0.333
+# 0.04067
+frames_per_second = 0.0416
 
 user_input_minutes_raw_csv = None  # Input in minutes
 # target_second_csv_raw = user_input_minutes_raw_csv * 60

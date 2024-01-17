@@ -26,7 +26,7 @@ def format_csv_values(tracker_id, bounding_box_anchors, class_id, confidence_val
 
     csv_values = [Modules.Values.variables.current_frame, Modules.Values.variables.format_time_elapsed, class_id,
                   confidence_value * 100, car_id, bounding_box_center[0],
-                  bounding_box_center[1], bounding_box_center[0] * GSD, bounding_box_center[1] * GSD,
+                  bounding_box_center[1], bounding_box_center[0] * Modules.Values.constants.GSD, bounding_box_center[1] * Modules.Values.constants.GSD,
                   Modules.Values.variables.vx, Modules.Values.variables.vy, Modules.Values.variables.vt, Modules.Values.variables.ax, Modules.Values.variables.ay, Modules.Values.variables.at
                   ]
     # speed

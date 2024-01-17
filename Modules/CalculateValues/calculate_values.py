@@ -1,4 +1,5 @@
 import math
+import Modules
 from Modules.Values.constants import GSD, frames_per_second
 
 
@@ -15,8 +16,8 @@ def calculate_speed(previous_frame_coordinates, current_frame_coordinates) -> di
         if key in previous_frame_coordinates:
             prev_x, prev_y = previous_frame_coordinates[key]
             current_x, current_y = current_frame_coordinates[key]
-            x_change = (current_x - prev_x) * GSD / frames_per_second
-            y_change = (current_y - prev_y) * GSD / frames_per_second
+            x_change = (current_x - prev_x) * Modules.Values.constants.GSD / frames_per_second
+            y_change = (current_y - prev_y) * Modules.Values.constants.GSD / frames_per_second
             speed_vehicle = math.sqrt(x_change ** 2 + y_change ** 2)
             c_speeds[key] = (x_change, y_change, speed_vehicle)
         else:
