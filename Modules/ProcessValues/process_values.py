@@ -39,8 +39,7 @@ def gooey_receiver(args=None):
     Modules.Values.files.video_info_resolution = f"{args.Video}"
 
     # Sets variables
-    # Modules.Values.constants.GSD = args.GSD
-    # Modules.Values.constants.user_input_minutes_raw_csv = args.Frecuencia * 60  # *60 to convert to minutes
+    Modules.Values.constants.user_input_minutes_raw_csv = f"{args.Frecuencia}.0"
     # Modules.Values.constants.GSD = args.Rutas
 
     sv.process_video(
@@ -83,7 +82,7 @@ def polygon_zone() -> dict:
                 'annotator': zone_annotator,
                 'tracked_vehicles': set(),
                 'vehicle_count': 0,
-                'polygon_zone_dict': [list_test[2] + 60, list_test[3] + 10]
+                'polygon_zone_dict': [int(list_test[2]), int(list_test[3])]
             }
 
             create_excel_sheets(zones_dict)
@@ -129,7 +128,7 @@ def process_polygon_zone(zones_dict, detections, frame):
                 # Store the objects for the current zone in the dictionary
             Modules.Values.variables.processed_objects[zone_name] = zone_objects
 
-        cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
         frame = zone_annotator.annotate(scene=frame)
 
     return Modules.Values.variables.processed_objects
@@ -139,8 +138,6 @@ tracker = sv.ByteTrack()
 box_annotator = sv.BoundingBoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 trace_annotator = sv.TraceAnnotator()
-
-
 
 zones_dict = None
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
@@ -170,7 +167,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
                                           CLASS_NAMES_DICT.get(detections.class_id[car_value]), detections.confidence[car_value])
         # writes value
-        if format_time_elapsed_reset_to_float == 1.0:  #Modules.Values.constants.target_second_csv_raw
+        if format_time_elapsed_reset_to_float == 1.0:  # Modules.Values.constants.user_input_minutes_raw_csv
             write_values_on_csv_raw(values_to_csv)
     # resets value
     print(format_time_elapsed_reset_to_float)

@@ -12,8 +12,8 @@ def main():
 
     # Input Parameters
     parser.add_argument("GSD", type=float, help="GSD (metros)", action="store",)
-    parser.add_argument("Frecuencia", type=float, help="Frecuencia de toma de datos general (minutos)", action="store")
-    parser.add_argument("Rutas", type=float, help="Frecuencia de toma de datos para las rutas (minutos)", action="store")
+    parser.add_argument("Frecuencia", type=float, help="Frecuencia de toma de datos general (Segundos)", action="store")
+    parser.add_argument("Rutas", type=float, help="Frecuencia de toma de datos para las rutas (Minutos)", action="store")
 
     # File Selection
     parser.add_argument("Video", help="Seleccione el video para el aforo", widget='FileChooser')
