@@ -15,7 +15,7 @@ from Modules.Values.variables import current_frame, time_elapsed_reset, time_ela
 #from Modules.Values.declare_polygon_zone import zones_dict
 from Modules.FormatValues.format_values import format_csv_values
 from Modules.WriteValuesOnFiles.write_values_on_files import write_values_on_csv_raw, write_csv_polygon_zone
-from Modules.Values.constants import  CLASS_NAMES_DICT
+from Modules.Values.constants import CLASS_NAMES_DICT
 
 # Method: process_polygon_zone
 from Modules.Values.variables import processed_objects
@@ -38,8 +38,10 @@ def gooey_receiver(args=None):
     # Sets the video resolution
     Modules.Values.files.video_info_resolution = f"{args.Video}"
 
-    # Sets variables
-    Modules.Values.constants.user_input_minutes_raw_csv = f"{args.Frecuencia}.0"
+    # Sets raw time threshold
+    Modules.Values.constants.user_input_minutes_raw_csv = args.Frecuencia
+    # Sets zone time threshold
+    Modules.Values.constants.user_input_minutes_zone_timer = args.Rutas * 60
     # Modules.Values.constants.GSD = args.Rutas
 
     sv.process_video(
@@ -167,11 +169,11 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
                                           CLASS_NAMES_DICT.get(detections.class_id[car_value]), detections.confidence[car_value])
         # writes value
-        if format_time_elapsed_reset_to_float == 1.0:  # Modules.Values.constants.user_input_minutes_raw_csv
+        if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01:  # Modules.Values.constants.user_input_minutes_raw_csv
             write_values_on_csv_raw(values_to_csv)
     # resets value
     print(format_time_elapsed_reset_to_float)
-    if format_time_elapsed_reset_to_float == 1.0: # Modules.Values.constants.user_input_minutes_raw_csv
+    if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01: # Modules.Values.constants.user_input_minutes_raw_csv
         Modules.Values.variables.time_elapsed_reset = 0
 
     # Process the polygon zone
@@ -180,7 +182,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     Modules.Values.variables.zone_timer += 1 / 24
     Modules.Values.variables.format_time_elapsed_test = f"{Modules.Values.variables.zone_timer: 0.3f}"
     print(Modules.Values.variables.format_time_elapsed_test)
-    if abs(float(Modules.Values.variables.format_time_elapsed_test) - 60) < 0.001:
+    if abs(float(Modules.Values.variables.format_time_elapsed_test) - Modules.Values.constants.user_input_minutes_zone_timer) < 0.2:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
         Modules.Values.variables.processed_objects = {}
         Modules.Values.variables.zone_timer = 0
