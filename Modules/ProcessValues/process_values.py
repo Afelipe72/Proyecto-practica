@@ -7,6 +7,9 @@ from openpyxl import load_workbook
 from Modules.Values.variables import processed_objects
 # from Modules.Values.declare_polygon_zone import zone_vehicle_count
 
+from ultralytics import YOLO
+
+
 # Method: callback
 import Modules
 from Modules.Values.files import model
@@ -27,23 +30,30 @@ from Modules.Values.files import excel_file_path_coordinates
 # Method: polygon_zone
 from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
 
-
+fps = 0
 def gooey_receiver(args=None):
+    global fps
     # Receives the Excel file with the coordinates
     Modules.Values.files.excel_file_path_coordinates = f"{args.Coordenadas}"
+    # Receives the Excel file template
+    Modules.Values.files.excel_file_path = f"{args.Plantilla}"
     # Receives the Yolo model
-    yolo_model = args.Modelo
+    Modules.Values.files.model = YOLO(f"{args.Modelo}")
+    Modules.Values.constants.CLASS_NAMES_DICT = Modules.Values.files.model.model.names
     # Receives the GSD
     Modules.Values.constants.GSD = args.GSD
     # Sets the video resolution
     Modules.Values.files.video_info_resolution = f"{args.Video}"
-
     # Sets raw time threshold
     Modules.Values.constants.user_input_minutes_raw_csv = args.Frecuencia
     # Sets zone time threshold
     Modules.Values.constants.user_input_minutes_zone_timer = args.Rutas * 60
-    # Modules.Values.constants.GSD = args.Rutas
+    # Gets the videos fps
+    video_test = cv2.VideoCapture(f"{args.Video}")
+    fps = round(video_test.get(cv2.CAP_PROP_FPS))
+    Modules.Values.constants.frames_per_second = 1 / fps
 
+    # Process the video
     sv.process_video(
         source_path=f"{args.Video}",
         target_path="result.mp4",
@@ -115,7 +125,7 @@ def process_polygon_zone(zones_dict, detections, frame):
                 tracked_vehicles.add(tracker_id)
 
                 class_id = int(detection[3])
-                class_names = CLASS_NAMES_DICT.get(class_id)
+                class_names = Modules.Values.constants.CLASS_NAMES_DICT.get(class_id)
                 confidence = round(float(detection[2]) * 100)
 
                 data_to_accumulate = {
@@ -143,31 +153,31 @@ trace_annotator = sv.TraceAnnotator()
 
 zones_dict = None
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
-    global zones_dict
+    global zones_dict, fps
     if not Modules.Values.variables.header_written_process_polygon_zone:
         zones_dict = polygon_zone()
         Modules.Values.variables.header_written_process_polygon_zone = True
     # Process frame
-    results = model(frame)[0]
+    results = Modules.Values.files.model(frame)[0]
     detections = sv.Detections.from_ultralytics(results)
     detections = tracker.update_with_detections(detections)
 
     Modules.Values.variables.current_frame += 1
 
-    Modules.Values.variables.time_elapsed_reset += 1 / 24
+    Modules.Values.variables.time_elapsed_reset += 1 / fps
     format_time_elapsed_reset = f"{Modules.Values.variables.time_elapsed_reset: 0.3f}"
     format_time_elapsed_reset_to_float = float(format_time_elapsed_reset)
 
     # sv.plot_image(image=frame, size=(16, 16))
 
     # For the raw_csv without resetting
-    Modules.Values.variables.time_elapsed += 1 / 24
+    Modules.Values.variables.time_elapsed += 1 / fps
     Modules.Values.variables.format_time_elapsed = f"{Modules.Values.variables.time_elapsed: 0.3f}"
 
     # Process for the raw csv Values
     for car_value in range(len(detections)):
         values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
-                                          CLASS_NAMES_DICT.get(detections.class_id[car_value]), detections.confidence[car_value])
+                                          Modules.Values.constants.CLASS_NAMES_DICT.get(detections.class_id[car_value]),detections.confidence[car_value])
         # writes value
         if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01:  # Modules.Values.constants.user_input_minutes_raw_csv
             write_values_on_csv_raw(values_to_csv)
@@ -179,7 +189,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     # Process the polygon zone
     process_polygon_zone(zones_dict, detections, frame)
     # Polygon zone timer
-    Modules.Values.variables.zone_timer += 1 / 24
+    Modules.Values.variables.zone_timer += 1 / fps
     Modules.Values.variables.format_time_elapsed_test = f"{Modules.Values.variables.zone_timer: 0.3f}"
     print(Modules.Values.variables.format_time_elapsed_test)
     if abs(float(Modules.Values.variables.format_time_elapsed_test) - Modules.Values.constants.user_input_minutes_zone_timer) < 0.2:

@@ -29,7 +29,7 @@ def write_excel_file(vehicle_type_counts):
                 ws = wb[zone_name]
                 start_column_index = 3
                 # start column index to set the start value
-                for col_idx, (key, value) in enumerate(CLASS_NAMES_DICT.items(), start=start_column_index):
+                for col_idx, (key, value) in enumerate(Modules.Values.constants.CLASS_NAMES_DICT.items(), start=start_column_index):
                     # Col idx to increase the column
                     for row in ws.iter_rows(min_row=9, min_col=col_idx, max_row=9, max_col=col_idx):
                         for cell in row:
@@ -55,7 +55,7 @@ def write_excel_file(vehicle_type_counts):
     start_column_index_counter = 3
     vehicle_counter_tracker = 0
     # Puts the vehicle type in a list
-    header_order = [CLASS_NAMES_DICT[i] for i in range(len(CLASS_NAMES_DICT))]
+    header_order = [Modules.Values.constants.CLASS_NAMES_DICT[i] for i in range(len(Modules.Values.constants.CLASS_NAMES_DICT))]
     # start column index to set the start value
     for zone_name, zone_items in vehicle_type_counts.items():
         for sheet in wb.worksheets:
