@@ -19,7 +19,7 @@ def main():
     parser.add_argument("Video", help="Seleccione el video para el aforo", widget='FileChooser')
     parser.add_argument("Modelo", help="Seleccione el archivo .pt para la inferencia YOLO", widget='FileChooser')
     parser.add_argument("Coordenadas", help="Seleccione el archivo con las coordenadas", widget='FileChooser')
-    parser.add_argument("Plantilla", help="Seleccione el de excel de aforo vehicular", widget='FileChooser')
+    parser.add_argument("Plantilla", help="Seleccione la plantilla de aforo vehicular (Archivo excel)", widget='FileChooser')
 
     # Parse the arguments
     args = parser.parse_args()

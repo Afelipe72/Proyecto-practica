@@ -1,6 +1,6 @@
 from ultralytics import YOLO
 
-excel_file_path = 'FORMATO PARA AFORO DE VEHICULOS.xlsx'
+excel_file_path = None
 path_report_copy = "Processed_report.xlsx"
 
 model = None

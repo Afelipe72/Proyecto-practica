@@ -101,12 +101,41 @@ def polygon_zone() -> dict:
 
     return zones_dict
 
+tracker_id_to_zone_id = {}
+counts = {}
+
+def update_tracker_info(detections_in_zones, detections) -> sv.Detections:
+    global tracker_id_to_zone_id, counts
+    detections_all = detections
+    for zone_id, detections_zone in enumerate(detections_in_zones):
+        for tracker_id in detections_zone.tracker_id:
+            tracker_id_to_zone_id.setdefault(tracker_id, zone_id)
+
+    for zone_id, detections_zone in enumerate(detections_in_zones):
+        for tracker_id in detections_zone.tracker_id:
+            if tracker_id in tracker_id_to_zone_id:
+                zone_in_id = tracker_id_to_zone_id[tracker_id]
+                counts.setdefault(zone_id, {})
+                counts[zone_id].setdefault(zone_in_id, set())
+                counts[zone_id][zone_in_id].add(tracker_id)
+
+    # Update class_id in detections_all based on tracker_id_to_zone_id
+    detections_all.class_id = np.vectorize(
+        lambda x: tracker_id_to_zone_id.get(x, -1)
+    )(detections_all.tracker_id)
+
+    # Filter out detections with class_id == -1
+    return detections_all[detections_all.class_id != -1]
+
+
 
 def process_polygon_zone(zones_dict, detections, frame):
     zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
+    # Testing
+    detections_in_zone = []
+
     for zone_name, zone_data in zones_dict.items():
         zone = zone_data['zone']
-        zone_annotator = zone_data['annotator']
         tracked_vehicles = zone_data['tracked_vehicles']
         zone_coordinates = zone_data['polygon_zone_dict']
         vehicle_count = zone_vehicle_count[zone_name]
@@ -116,6 +145,7 @@ def process_polygon_zone(zones_dict, detections, frame):
         in_zone_detections = detections[mask]
         zone_objects = Modules.Values.variables.processed_objects.get(zone_name, [])
 
+        # Accumulate detections for each zone
         for i, detection in enumerate(in_zone_detections):
             tracker_id = detection[4]
 
@@ -137,21 +167,27 @@ def process_polygon_zone(zones_dict, detections, frame):
                 }
 
                 zone_objects.append(data_to_accumulate)
-                # Store the objects for the current zone in the dictionary
-            Modules.Values.variables.processed_objects[zone_name] = zone_objects
+        # Store the objects for the current zone in the dictionary
+        Modules.Values.variables.processed_objects[zone_name] = zone_objects
+
+        # Testing
+        # Accumulate detections for all zones
+        detections_in_zone.append(in_zone_detections)
 
         cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        frame = zone_annotator.annotate(scene=frame)
+        frame = zone_data['annotator'].annotate(scene=frame)
 
-    return Modules.Values.variables.processed_objects
+    return Modules.Values.variables.processed_objects, detections_in_zone
 
 
 tracker = sv.ByteTrack()
 box_annotator = sv.BoundingBoxAnnotator()
-label_annotator = sv.LabelAnnotator()
-trace_annotator = sv.TraceAnnotator()
+label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
+trace_annotator = sv.TraceAnnotator(trace_length=150)
 
 zones_dict = None
+
+
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
     global zones_dict, fps
     if not Modules.Values.variables.header_written_process_polygon_zone:
@@ -192,13 +228,19 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     Modules.Values.variables.zone_timer += 1 / fps
     Modules.Values.variables.format_time_elapsed_test = f"{Modules.Values.variables.zone_timer: 0.3f}"
     print(Modules.Values.variables.format_time_elapsed_test)
-    if abs(float(Modules.Values.variables.format_time_elapsed_test) - Modules.Values.constants.user_input_minutes_zone_timer) < 0.2:
+    if abs(float(Modules.Values.variables.format_time_elapsed_test) - Modules.Values.constants.user_input_minutes_zone_timer) < 0.01:
         write_csv_polygon_zone(process_polygon_zone(zones_dict, detections, frame))
         Modules.Values.variables.processed_objects = {}
         Modules.Values.variables.zone_timer = 0
 
+
+    processed_objects_test, detections_in_zone = process_polygon_zone(zones_dict, detections, frame)
+    # detections = sv.Detections.merge(detections_in_zone)
+    detections = update_tracker_info(detections_in_zone, detections)
+    print(detections)
+    # fix labels
     labels = [
-        f"#{tracker_id} {results.names[class_id]}"
+        f"#{tracker_id} {class_id} {results.names[class_id]}"
         for class_id, tracker_id
         in zip(detections.class_id, detections.tracker_id)
     ]

@@ -43,7 +43,7 @@ def write_csv_polygon_zone(accumulated_data):
 
         Modules.Values.variables.header_written_zone = True
 
-    for key, car_values in accumulated_data.items():
+    for key, car_values in accumulated_data[0].items():
         for value in car_values:
             # items_accumulated_data = {'zone':key, **value}
             zone_name = key
@@ -70,7 +70,7 @@ def write_csv_polygon_zone(accumulated_data):
 
 
 def create_excel_sheets(number_of_zones):
-    shutil.copy(excel_file_path, path_report_copy)
+    shutil.copy(Modules.Values.files.excel_file_path, path_report_copy)
     wb = load_workbook(path_report_copy)
     target_worksheet = wb['template']
     for key, zone_items in number_of_zones.items():
