@@ -183,7 +183,12 @@ def process_polygon_zone(zones_dict, detections, frame):
 tracker = sv.ByteTrack()
 box_annotator = sv.BoundingBoxAnnotator()
 label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
-trace_annotator = sv.TraceAnnotator(trace_length=150)
+trace_annotator = sv.TraceAnnotator(trace_length=100)
+mask_annotator = sv.MaskAnnotator()
+polygon_annotator = sv.PolygonAnnotator()
+corner_annotator = sv.BoxCornerAnnotator()
+
+
 
 zones_dict = None
 
@@ -211,12 +216,12 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     Modules.Values.variables.format_time_elapsed = f"{Modules.Values.variables.time_elapsed: 0.3f}"
 
     # Process for the raw csv Values
-    for car_value in range(len(detections)):
-        values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
-                                          Modules.Values.constants.CLASS_NAMES_DICT.get(detections.class_id[car_value]),detections.confidence[car_value])
+    # for car_value in range(len(detections)):
+        # values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
+        #                                   Modules.Values.constants.CLASS_NAMES_DICT.get(detections.class_id[car_value]),detections.confidence[car_value])
         # writes value
-        if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01:  # Modules.Values.constants.user_input_minutes_raw_csv
-            write_values_on_csv_raw(values_to_csv)
+        # if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01:  # Modules.Values.constants.user_input_minutes_raw_csv
+            # write_values_on_csv_raw(values_to_csv)
     # resets value
     print(format_time_elapsed_reset_to_float)
     if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01: # Modules.Values.constants.user_input_minutes_raw_csv
@@ -224,6 +229,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
 
     # Process the polygon zone
     process_polygon_zone(zones_dict, detections, frame)
+
     # Polygon zone timer
     Modules.Values.variables.zone_timer += 1 / fps
     Modules.Values.variables.format_time_elapsed_test = f"{Modules.Values.variables.zone_timer: 0.3f}"
@@ -236,23 +242,27 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
 
     processed_objects_test, detections_in_zone = process_polygon_zone(zones_dict, detections, frame)
     # detections = sv.Detections.merge(detections_in_zone)
-    detections = update_tracker_info(detections_in_zone, detections)
-    print(detections)
-    # fix labels
+    # detections = update_tracker_info(detections_in_zone, detections)
+
     labels = [
-        f"#{tracker_id} {class_id} {results.names[class_id]}"
+        f"#{tracker_id}"
         for class_id, tracker_id
         in zip(detections.class_id, detections.tracker_id)
     ]
 
     annotated_frame = box_annotator.annotate(
-        frame.copy(), detections=detections)
+        scene=frame.copy(), detections=detections)
 
-    annotated_frame = label_annotator.annotate(
-        annotated_frame, detections=detections, labels=labels)
-
-    return trace_annotator.annotate(
+    return box_annotator.annotate(
         annotated_frame, detections=detections)
+
+    # # fix labels
+    # labels = [
+    #     f"#{tracker_id}"
+    #     for class_id, tracker_id
+    #     in zip(detections.class_id, detections.tracker_id)
+    # ]
+
 
 
 
