@@ -63,43 +63,51 @@ def gooey_receiver(args=None):
 
 def polygon_zone() -> dict:
     polygon_zone_dict = {}
-    video_info = sv.VideoInfo.from_video_path(Modules.Values.files.video_info_resolution)
+    zones_dict = {}
 
-    zones_dict = {}  # Dictionary to store zones and their annotators
+    try:
+        wb = load_workbook(Modules.Values.files.excel_file_path_coordinates)
+        ws = wb.active
 
-    wb = load_workbook(Modules.Values.files.excel_file_path_coordinates)
-    ws = wb.active
+        num_rows = ws.max_row
+        num_columns = ws.max_column
 
-    num_rows = ws.max_row
-    num_columns = ws.max_column
+        video_info = sv.VideoInfo.from_video_path(Modules.Values.files.video_info_resolution)
 
-    for row in ws.iter_rows(min_row=2, min_col=1, max_row=num_rows, max_col=num_columns):
-        list_test = []
-        polygon_zone_name = None
-        for cell in row:
-            if cell.column == 1:
-                polygon_zone_name = cell.value
-            else:
-                list_test.append(int(cell.value))
-        if polygon_zone_name is not None:
-            # Assuming the values are in pairs (x, y), adjust accordingly
-            values = np.array(list(zip(list_test[::2], list_test[1::2])))
-            polygon_zone_dict[polygon_zone_name] = values
+        for row in ws.iter_rows(min_row=2, min_col=1, max_row=num_rows, max_col=num_columns):
+            zone_coordinates = []
+            polygon_zone_name = None
+            for cell in row:
+                if cell.column == 1:
+                    polygon_zone_name = cell.value
+                else:
+                    zone_coordinates.append(int(cell.value))
+            if polygon_zone_name is not None:
+                # Assuming the values are in pairs (x, y), adjust accordingly
+                values = np.array(list(zip(zone_coordinates[::2], zone_coordinates[1::2])))
+                polygon_zone_dict[polygon_zone_name] = values
 
-            zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
-            zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(255, 225, 6), thickness=2, text_thickness=1, text_scale=1, text_padding=0)
+                zone = sv.PolygonZone(polygon=polygon_zone_dict[polygon_zone_name], frame_resolution_wh=video_info.resolution_wh)
+                zone_annotator = sv.PolygonZoneAnnotator(zone=zone, color=sv.Color(255, 225, 6), thickness=2, text_thickness=1, text_scale=1, text_padding=0)
 
-            zones_dict[polygon_zone_name] = {
-                'zone': zone,
-                'annotator': zone_annotator,
-                'tracked_vehicles': set(),
-                'vehicle_count': 0,
-                'polygon_zone_dict': [int(list_test[2]), int(list_test[3])]
-            }
+                zones_dict[polygon_zone_name] = {
+                    'zone': zone,
+                    'annotator': zone_annotator,
+                    'tracked_vehicles': set(),
+                    'vehicle_count': 0,
+                    'zone_coordinates_polygon': values,
+                    'zone_name_coordinates': [int(zone_coordinates[2]), int(zone_coordinates[3])]
+                }
+                print(values)
+                create_excel_sheets(zones_dict)
 
-            create_excel_sheets(zones_dict)
+    except Exception as e:
+        # Handle the case where the Excel file couldn't be loaded
+        print("No se detectó un archivo con las coordenadas.")
+        return {}
 
     return zones_dict
+
 
 tracker_id_to_zone_id = {}
 counts = {}
@@ -131,13 +139,14 @@ def update_tracker_info(detections_in_zones, detections) -> sv.Detections:
 
 def process_polygon_zone(zones_dict, detections, frame):
     zone_vehicle_count = {zone_name: 0 for zone_name in zones_dict.keys()}
-    # Testing
+    # Testing traffic analisis
     detections_in_zone = []
 
     for zone_name, zone_data in zones_dict.items():
         zone = zone_data['zone']
         tracked_vehicles = zone_data['tracked_vehicles']
-        zone_coordinates = zone_data['polygon_zone_dict']
+        zone_name_coordinates = zone_data['zone_name_coordinates']
+        zone_coordinates_polygon = zone_data['zone_coordinates_polygon']
         vehicle_count = zone_vehicle_count[zone_name]
 
         zone.trigger(detections=detections)
@@ -167,14 +176,24 @@ def process_polygon_zone(zones_dict, detections, frame):
                 }
 
                 zone_objects.append(data_to_accumulate)
+
+        # draw in the polygon
+        if in_zone_detections:
+            # Testing blinking when vehicles are inside the zone
+            overlay = frame.copy()
+            cv2.fillPoly(overlay, np.int32([zone_coordinates_polygon]), color=(255, 255, 255))
+            # Transparency factor
+            alpha = 0.2
+            cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
+
         # Store the objects for the current zone in the dictionary
         Modules.Values.variables.processed_objects[zone_name] = zone_objects
 
-        # Testing
+        # Testing traffic analysis
         # Accumulate detections for all zones
         detections_in_zone.append(in_zone_detections)
 
-        cv2.putText(frame, zone_name, zone_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, zone_name, zone_name_coordinates, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
         frame = zone_data['annotator'].annotate(scene=frame)
 
     return Modules.Values.variables.processed_objects, detections_in_zone
@@ -183,7 +202,7 @@ def process_polygon_zone(zones_dict, detections, frame):
 tracker = sv.ByteTrack()
 box_annotator = sv.BoundingBoxAnnotator()
 label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
-trace_annotator = sv.TraceAnnotator(trace_length=100)
+trace_annotator = sv.TraceAnnotator(trace_length=200)
 mask_annotator = sv.MaskAnnotator()
 polygon_annotator = sv.PolygonAnnotator()
 corner_annotator = sv.BoxCornerAnnotator()
@@ -216,12 +235,14 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     Modules.Values.variables.format_time_elapsed = f"{Modules.Values.variables.time_elapsed: 0.3f}"
 
     # Process for the raw csv Values
-    # for car_value in range(len(detections)):
-        # values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
-        #                                   Modules.Values.constants.CLASS_NAMES_DICT.get(detections.class_id[car_value]),detections.confidence[car_value])
-        # writes value
-        # if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01:  # Modules.Values.constants.user_input_minutes_raw_csv
-            # write_values_on_csv_raw(values_to_csv)
+    if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) <= (1/fps)*5:
+        for car_value in range(len(detections)):
+            values_to_csv = format_csv_values(detections.tracker_id[car_value], detections.xyxy[car_value],
+                            Modules.Values.constants.CLASS_NAMES_DICT.get(detections.class_id[car_value]),detections.confidence[car_value])
+            # writes value
+            if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01:  # Modules.Values.constants.user_input_minutes_raw_csv
+                write_values_on_csv_raw(values_to_csv)
+
     # resets value
     print(format_time_elapsed_reset_to_float)
     if abs(format_time_elapsed_reset_to_float - Modules.Values.constants.user_input_minutes_raw_csv) < 0.01: # Modules.Values.constants.user_input_minutes_raw_csv
@@ -241,8 +262,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
 
 
     processed_objects_test, detections_in_zone = process_polygon_zone(zones_dict, detections, frame)
-    # detections = sv.Detections.merge(detections_in_zone)
-    # detections = update_tracker_info(detections_in_zone, detections)
+    detections = update_tracker_info(detections_in_zone, detections)
 
     labels = [
         f"#{tracker_id}"
@@ -253,8 +273,9 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     annotated_frame = box_annotator.annotate(
         scene=frame.copy(), detections=detections)
 
-    return box_annotator.annotate(
+    return trace_annotator.annotate(
         annotated_frame, detections=detections)
+
 
     # # fix labels
     # labels = [
