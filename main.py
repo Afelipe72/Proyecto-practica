@@ -68,6 +68,18 @@ def main():
         "--Rutas", help="Frecuencia de toma de datos para las rutas (Minutos)", action="store", type=float, widget='DecimalField'
     )
 
+    custom_labels_group = parser.add_argument_group(
+        "Etiquetas personalizadas",
+        "Seleccione las etiquetas que desea dibujar en el video."
+    )
+
+    custom_labels_group.add_argument(
+        "--Caja", help="Etiqueta de caja",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Redonda", help="Etiqueta de caja redonda",  widget='CheckBox', action="store_true"
+    )
+
     # Parse the arguments
     args = parser.parse_args()
 
