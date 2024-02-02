@@ -31,8 +31,26 @@ from Modules.Values.files import excel_file_path_coordinates
 from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
 
 fps = 0
+
+box_annotator = None
+label_annotator = None
+round_box_annotator = None
+trace_annotator = None
+corner_annotator = None
+color_annotator = None
+circle_annotator = None
+dot_annotator = None
+triangle_annotator = None
+ellipse_annotator = None
+percentage_bar_annotator = None
+blur_annotator = None
+pixelate_annotator = None
+heat_map_annotator = None
+selected_annotators = []
+
 def gooey_receiver(args=None):
-    global fps
+    global fps, box_annotator, label_annotator, round_box_annotator, trace_annotator, corner_annotator, color_annotator, \
+        dot_annotator, triangle_annotator,circle_annotator ,ellipse_annotator, percentage_bar_annotator, blur_annotator, pixelate_annotator, heat_map_annotator, selected_annotators
     # Receives the Excel file with the coordinates
     Modules.Values.files.excel_file_path_coordinates = f"{args.Coordenadas}"
     # Receives the Excel file template
@@ -52,6 +70,58 @@ def gooey_receiver(args=None):
     video_test = cv2.VideoCapture(f"{args.Video}")
     fps = round(video_test.get(cv2.CAP_PROP_FPS))
     Modules.Values.constants.frames_per_second = 1 / fps
+
+    # Custom labels
+    if args.BoundingBox:
+        box_annotator = sv.BoundingBoxAnnotator()
+
+    if args.Label:
+        label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
+
+    if args.RoundBox:
+        # round_box_annotator = sv.RoundBoxAnnotator()
+        print("por hacer")
+
+    if args.Trace:
+        trace_annotator = sv.TraceAnnotator(trace_length=200)
+
+    if args.BoxCorner:
+        corner_annotator = sv.BoxCornerAnnotator()
+
+    if args.Color:
+        color_annotator = sv.ColorAnnotator()
+
+    if args.Circle:
+        circle_annotator = sv.CircleAnnotator()
+
+    if args.Dot:
+        dot_annotator = sv.DotAnnotator()
+
+    if args.Triangle:
+        triangle_annotator = sv.TriangleAnnotator()
+
+    if args.Ellipse:
+        ellipse_annotator = sv.EllipseAnnotator()
+
+    if args.PercentageBar:
+        # percentage_bar_annotator = sv.PercentageBarAnnotator()
+        print("por hacer")
+
+    if args.Blur:
+        blur_annotator = sv.BlurAnnotator()
+
+    if args.Pixelate:
+        pixelate_annotator = sv.PixelateAnnotator()
+
+    if args.HeatMap:
+        heat_map_annotator = sv.HeatMapAnnotator()
+
+    selected_annotators = [
+        box_annotator, label_annotator, round_box_annotator, trace_annotator,
+        corner_annotator, color_annotator, dot_annotator, triangle_annotator,
+        ellipse_annotator, percentage_bar_annotator, blur_annotator,
+        pixelate_annotator, heat_map_annotator
+    ]
 
     # Process the video
     sv.process_video(
@@ -200,12 +270,12 @@ def process_polygon_zone(zones_dict, detections, frame):
 
 
 tracker = sv.ByteTrack()
-box_annotator = sv.BoundingBoxAnnotator()
-label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
-trace_annotator = sv.TraceAnnotator(trace_length=200)
-mask_annotator = sv.MaskAnnotator()
-polygon_annotator = sv.PolygonAnnotator()
-corner_annotator = sv.BoxCornerAnnotator()
+# box_annotator = sv.BoundingBoxAnnotator()
+# label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
+# trace_annotator = sv.TraceAnnotator(trace_length=200)
+# mask_annotator = sv.MaskAnnotator()
+# polygon_annotator = sv.PolygonAnnotator()
+# corner_annotator = sv.BoxCornerAnnotator()
 
 
 
@@ -213,7 +283,7 @@ zones_dict = None
 
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
-    global zones_dict, fps
+    global zones_dict, fps, selected_annotators
     if not Modules.Values.variables.header_written_process_polygon_zone:
         zones_dict = polygon_zone()
         Modules.Values.variables.header_written_process_polygon_zone = True
@@ -270,11 +340,19 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         in zip(detections.class_id, detections.tracker_id)
     ]
 
-    annotated_frame = box_annotator.annotate(
-        scene=frame.copy(), detections=detections)
+    annotated_frame = frame.copy()
 
-    return trace_annotator.annotate(
-        annotated_frame, detections=detections)
+    for annotator in selected_annotators:
+        if annotator is not None:
+            annotated_frame = annotator.annotate(annotated_frame, detections=detections)
+
+    return annotated_frame
+
+    # annotated_frame = box_annotator.annotate(
+    #     scene=frame.copy(), detections=detections)
+    #
+    # return trace_annotator.annotate(
+    #     annotated_frame, detections=detections)
 
 
     # # fix labels

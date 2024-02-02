@@ -68,17 +68,56 @@ def main():
         "--Rutas", help="Frecuencia de toma de datos para las rutas (Minutos)", action="store", type=float, widget='DecimalField'
     )
 
+    # Custom labels
+
     custom_labels_group = parser.add_argument_group(
         "Etiquetas personalizadas",
         "Seleccione las etiquetas que desea dibujar en el video."
     )
 
     custom_labels_group.add_argument(
-        "--Caja", help="Etiqueta de caja",  widget='CheckBox', action="store_true"
+        "--BoundingBox", help="Etiqueta de caja",  widget='CheckBox', action="store_true"
     )
     custom_labels_group.add_argument(
-        "--Redonda", help="Etiqueta de caja redonda",  widget='CheckBox', action="store_true"
+        "--Label", help="Etiqueta de descripción", widget='CheckBox', action="store_true"
     )
+    custom_labels_group.add_argument(
+        "--RoundBox", help="Etiqueta de caja con esquinas redondas", widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Trace", help="Etiqueta de trazo",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--BoxCorner", help="Etiqueta de caja esquinera",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Color", help="Etiqueta de caja rellena de color",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Circle", help="Etiqueta de caja circular",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Dot", help="Etiqueta de un punto",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Triangle", help="Etiqueta de triángulo",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Ellipse", help="Etiqueta de elipse",  widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--PercentageBar", help="Etiqueta de porcentaje", widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Blur", help="Etiqueta de opacar", widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--Pixelate", help="Etiqueta de pixeles", widget='CheckBox', action="store_true"
+    )
+    custom_labels_group.add_argument(
+        "--HeatMap", help="Etiqueta de mapa de calor", widget='CheckBox', action="store_true"
+    )
+
 
     # Parse the arguments
     args = parser.parse_args()
