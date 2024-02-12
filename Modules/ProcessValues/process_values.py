@@ -29,10 +29,10 @@ from Modules.Values.files import excel_file_path_coordinates
 
 # Method: polygon_zone
 from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
-
+#
 fps = 0
 
-box_annotator = None
+box_annotator = sv.BoundingBoxAnnotator()
 label_annotator = None
 round_box_annotator = None
 trace_annotator = None
@@ -51,7 +51,7 @@ selected_annotators = []
 def gooey_receiver(args=None):
     global fps, box_annotator, label_annotator, round_box_annotator, trace_annotator, corner_annotator, color_annotator, \
         dot_annotator, triangle_annotator,circle_annotator ,ellipse_annotator, percentage_bar_annotator, blur_annotator, pixelate_annotator, heat_map_annotator, selected_annotators
-    # Receives the Excel file with the coordinates
+#     # Receives the Excel file with the coordinates
     Modules.Values.files.excel_file_path_coordinates = f"{args.Coordenadas}"
     # Receives the Excel file template
     Modules.Values.files.excel_file_path = f"{args.Plantilla}"
@@ -76,14 +76,14 @@ def gooey_receiver(args=None):
         box_annotator = sv.BoundingBoxAnnotator()
 
     if args.Label:
-        label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
+        label_annotator = sv.LabelAnnotator(text_scale=0.2, text_padding=0)
 
     if args.RoundBox:
         # round_box_annotator = sv.RoundBoxAnnotator()
         print("por hacer")
 
     if args.Trace:
-        trace_annotator = sv.TraceAnnotator(trace_length=200)
+        trace_annotator = sv.TraceAnnotator(trace_length=9000)
 
     if args.BoxCorner:
         corner_annotator = sv.BoxCornerAnnotator()
@@ -114,7 +114,7 @@ def gooey_receiver(args=None):
         pixelate_annotator = sv.PixelateAnnotator()
 
     if args.HeatMap:
-        heat_map_annotator = sv.HeatMapAnnotator()
+        heat_map_annotator = sv.HeatMapAnnotator(radius=10,kernel_size=25)
 
     selected_annotators = [
         box_annotator, label_annotator, round_box_annotator, trace_annotator,
@@ -330,26 +330,22 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         Modules.Values.variables.processed_objects = {}
         Modules.Values.variables.zone_timer = 0
 
-
     processed_objects_test, detections_in_zone = process_polygon_zone(zones_dict, detections, frame)
     detections = update_tracker_info(detections_in_zone, detections)
 
-    labels = [
-        f"#{tracker_id}"
-        for class_id, tracker_id
-        in zip(detections.class_id, detections.tracker_id)
-    ]
+    # labels = [
+    #     f"#{tracker_id}"
+    #     for class_id, tracker_id
+    #     in zip(detections.class_id, detections.tracker_id)
+    # ]
 
     annotated_frame = frame.copy()
+    selected_annotators = [annotator for annotator in selected_annotators if annotator is not None]
 
     for annotator in selected_annotators:
-        if annotator is not None:
-            annotated_frame = annotator.annotate(annotated_frame, detections=detections)
-
+        annotated_frame = annotator.annotate(annotated_frame, detections=detections)
     return annotated_frame
 
-    # annotated_frame = box_annotator.annotate(
-    #     scene=frame.copy(), detections=detections)
     #
     # return trace_annotator.annotate(
     #     annotated_frame, detections=detections)

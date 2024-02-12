@@ -20,7 +20,7 @@ import warnings
                'menuTitle': 'Información',
                'name': 'Aplicativo de TPD automático con IA',
                'description': 'TPD con IA',
-               'version': '1.0',
+               'version': 'Versión: 1.0',
                'copyright': '2024',
                'website': 'https://xenital.com',
                }]
