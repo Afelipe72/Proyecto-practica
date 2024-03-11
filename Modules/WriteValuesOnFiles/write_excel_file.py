@@ -44,7 +44,7 @@ def write_excel_file(vehicle_type_counts):
                 ws = wb[zone_name_w]
                 for zone_name, zone_items in vehicle_type_counts.items():
                     for vehicle_type, zone_timer_and_count in zone_items.items():
-                        timer = zone_timer_and_count['Zone timer']
+                        timer = float(zone_timer_and_count['Zone timer'])/60
                 for row in ws.iter_rows(min_row=Modules.Values.variables.counter_zone_timer + 10, min_col=2, max_row=Modules.Values.variables.counter_zone_timer+10, max_col=2):
                     for cell in row:
                         cell.value = timer

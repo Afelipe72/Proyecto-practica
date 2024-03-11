@@ -32,7 +32,7 @@ from Modules.WriteValuesOnFiles.write_values_on_files import create_excel_sheets
 #
 fps = 0
 
-box_annotator = sv.BoundingBoxAnnotator()
+box_annotator = None
 label_annotator = None
 round_box_annotator = None
 trace_annotator = None
@@ -50,7 +50,7 @@ selected_annotators = []
 
 def gooey_receiver(args=None):
     global fps, box_annotator, label_annotator, round_box_annotator, trace_annotator, corner_annotator, color_annotator, \
-        dot_annotator, triangle_annotator,circle_annotator ,ellipse_annotator, percentage_bar_annotator, blur_annotator, pixelate_annotator, heat_map_annotator, selected_annotators
+        dot_annotator, triangle_annotator,circle_annotator, ellipse_annotator, percentage_bar_annotator, blur_annotator, pixelate_annotator, heat_map_annotator, selected_annotators
 #     # Receives the Excel file with the coordinates
     Modules.Values.files.excel_file_path_coordinates = f"{args.Coordenadas}"
     # Receives the Excel file template
@@ -76,11 +76,7 @@ def gooey_receiver(args=None):
         box_annotator = sv.BoundingBoxAnnotator()
 
     if args.Label:
-        label_annotator = sv.LabelAnnotator(text_scale=0.2, text_padding=0)
-
-    if args.RoundBox:
-        # round_box_annotator = sv.RoundBoxAnnotator()
-        print("por hacer")
+        label_annotator = sv.LabelAnnotator(text_scale=1, text_padding=1)
 
     if args.Trace:
         trace_annotator = sv.TraceAnnotator(trace_length=9000)
@@ -103,21 +99,14 @@ def gooey_receiver(args=None):
     if args.Ellipse:
         ellipse_annotator = sv.EllipseAnnotator()
 
-    if args.PercentageBar:
-        # percentage_bar_annotator = sv.PercentageBarAnnotator()
-        print("por hacer")
-
     if args.Blur:
         blur_annotator = sv.BlurAnnotator()
 
-    if args.Pixelate:
-        pixelate_annotator = sv.PixelateAnnotator()
-
     if args.HeatMap:
-        heat_map_annotator = sv.HeatMapAnnotator(radius=10,kernel_size=25)
+        heat_map_annotator = sv.HeatMapAnnotator(radius=10, kernel_size=25)
 
     selected_annotators = [
-        box_annotator, label_annotator, round_box_annotator, trace_annotator,
+        box_annotator, label_annotator, circle_annotator, trace_annotator,
         corner_annotator, color_annotator, dot_annotator, triangle_annotator,
         ellipse_annotator, percentage_bar_annotator, blur_annotator,
         pixelate_annotator, heat_map_annotator
@@ -168,7 +157,7 @@ def polygon_zone() -> dict:
                     'zone_coordinates_polygon': values,
                     'zone_name_coordinates': [int(zone_coordinates[2]), int(zone_coordinates[3])]
                 }
-                print(values)
+
                 create_excel_sheets(zones_dict)
 
     except Exception as e:
@@ -283,7 +272,7 @@ zones_dict = None
 
 
 def callback(frame: np.ndarray, _: int) -> np.ndarray:
-    global zones_dict, fps, selected_annotators
+    global zones_dict, fps, selected_annotators, label_annotator
     if not Modules.Values.variables.header_written_process_polygon_zone:
         zones_dict = polygon_zone()
         Modules.Values.variables.header_written_process_polygon_zone = True
@@ -331,22 +320,27 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
         Modules.Values.variables.zone_timer = 0
 
     processed_objects_test, detections_in_zone = process_polygon_zone(zones_dict, detections, frame)
-    detections = update_tracker_info(detections_in_zone, detections)
+    # decomentar para la detección solo en poligonos
+    # detections = update_tracker_info(detections_in_zone, detections)
 
-    # labels = [
-    #     f"#{tracker_id}"
-    #     for class_id, tracker_id
-    #     in zip(detections.class_id, detections.tracker_id)
-    # ]
-
+    labels = [
+        f"#{tracker_id} {results.names[class_id]}"
+        for class_id, tracker_id
+        in zip(detections.class_id, detections.tracker_id)
+    ]
+    # annotated_frame_label = label_annotator.annotate
     annotated_frame = frame.copy()
     selected_annotators = [annotator for annotator in selected_annotators if annotator is not None]
+    print(selected_annotators)
+
 
     for annotator in selected_annotators:
         annotated_frame = annotator.annotate(annotated_frame, detections=detections)
+        if label_annotator:
+            label_annotator.annotate(annotated_frame, detections=detections, labels=labels)
     return annotated_frame
 
-    #
+
     # return trace_annotator.annotate(
     #     annotated_frame, detections=detections)
 

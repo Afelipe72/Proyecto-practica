@@ -54,7 +54,7 @@ def write_csv_polygon_zone(accumulated_data):
             confidence = value['confidence']
 
             # Append the extracted Values to the list
-            car_values_list.extend([zone_name, Modules.Values.variables.format_time_elapsed, vehicle_count, class_names, tracker_id])
+            car_values_list.extend([zone_name, float(Modules.Values.variables.format_time_elapsed)/60, vehicle_count, class_names, tracker_id])
 
             car_value_list_report.extend([zone_name, Modules.Values.variables.format_time_elapsed, vehicle_count, class_names])
 

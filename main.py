@@ -5,7 +5,7 @@ from Modules.ProcessValues.process_values import gooey_receiver
 from Modules.Values.constants import GSD, user_input_minutes_raw_csv
 import warnings
 
-@Gooey(program_name="Conteo Vehicular", program_description= 'Contar carros :)',  default_size=(1020, 610), language='spanish', tabbed_groups=True,
+@Gooey(program_name="Conteo Vehicular", program_description= 'Prototipo para realizar el aforo vehícular.  ',  default_size=(1020, 610), language='spanish', tabbed_groups=True,
        menu= [{
            'name': 'Herramientas',
            'items': [{
@@ -82,9 +82,6 @@ def main():
         "--Label", help="Etiqueta de descripción", widget='CheckBox', action="store_true"
     )
     custom_labels_group.add_argument(
-        "--RoundBox", help="Etiqueta de caja con esquinas redondas", widget='CheckBox', action="store_true"
-    )
-    custom_labels_group.add_argument(
         "--Trace", help="Etiqueta de trazo",  widget='CheckBox', action="store_true"
     )
     custom_labels_group.add_argument(
@@ -106,14 +103,9 @@ def main():
         "--Ellipse", help="Etiqueta de elipse",  widget='CheckBox', action="store_true"
     )
     custom_labels_group.add_argument(
-        "--PercentageBar", help="Etiqueta de porcentaje", widget='CheckBox', action="store_true"
-    )
-    custom_labels_group.add_argument(
         "--Blur", help="Etiqueta de opacar", widget='CheckBox', action="store_true"
     )
-    custom_labels_group.add_argument(
-        "--Pixelate", help="Etiqueta de pixeles", widget='CheckBox', action="store_true"
-    )
+
     custom_labels_group.add_argument(
         "--HeatMap", help="Etiqueta de mapa de calor", widget='CheckBox', action="store_true"
     )
