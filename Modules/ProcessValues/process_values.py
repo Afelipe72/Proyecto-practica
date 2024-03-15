@@ -331,7 +331,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     # annotated_frame_label = label_annotator.annotate
     annotated_frame = frame.copy()
     selected_annotators = [annotator for annotator in selected_annotators if annotator is not None]
-    print(selected_annotators)
+
 
 
     for annotator in selected_annotators:

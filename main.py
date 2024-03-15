@@ -1,11 +1,13 @@
-from gooey import Gooey, GooeyParser
+import sys
 
+from gooey import Gooey, GooeyParser
+import os
 import Modules.Values.constants
 from Modules.ProcessValues.process_values import gooey_receiver
 from Modules.Values.constants import GSD, user_input_minutes_raw_csv
 import warnings
 
-@Gooey(program_name="Conteo Vehicular", program_description= 'Prototipo para realizar el aforo vehícular.  ',  default_size=(1020, 610), language='spanish', tabbed_groups=True,
+@Gooey(program_name="Conteo Vehicular", program_description= 'Prototipo para realizar el aforo vehícular.  ',  default_size=(1020, 610), language='spanish', tabbed_groups=True,progress_bar=True,
        menu= [{
            'name': 'Herramientas',
            'items': [{
