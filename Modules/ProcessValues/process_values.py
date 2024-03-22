@@ -76,7 +76,7 @@ def gooey_receiver(args=None):
         box_annotator = sv.BoundingBoxAnnotator()
 
     if args.Label:
-        label_annotator = sv.LabelAnnotator(text_scale=1, text_padding=1)
+        label_annotator = sv.LabelAnnotator()
 
     if args.Trace:
         trace_annotator = sv.TraceAnnotator(trace_length=9000)
@@ -103,6 +103,7 @@ def gooey_receiver(args=None):
         blur_annotator = sv.BlurAnnotator()
 
     if args.HeatMap:
+        # heat_map_annotator = sv.HeatMapAnnotator(radius=10, kernel_size=25)
         heat_map_annotator = sv.HeatMapAnnotator(radius=10, kernel_size=25)
 
     selected_annotators = [
@@ -259,14 +260,6 @@ def process_polygon_zone(zones_dict, detections, frame):
 
 
 tracker = sv.ByteTrack()
-# box_annotator = sv.BoundingBoxAnnotator()
-# label_annotator = sv.LabelAnnotator(text_scale=0.5, text_padding=1)
-# trace_annotator = sv.TraceAnnotator(trace_length=200)
-# mask_annotator = sv.MaskAnnotator()
-# polygon_annotator = sv.PolygonAnnotator()
-# corner_annotator = sv.BoxCornerAnnotator()
-
-
 
 zones_dict = None
 
@@ -332,25 +325,21 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     annotated_frame = frame.copy()
     selected_annotators = [annotator for annotator in selected_annotators if annotator is not None]
 
-
+    cv2.imshow('Proceso del video', annotated_frame)
 
     for annotator in selected_annotators:
         annotated_frame = annotator.annotate(annotated_frame, detections=detections)
         if label_annotator:
             label_annotator.annotate(annotated_frame, detections=detections, labels=labels)
+
+    # Display the annotated frame using OpenCVv
+    img_resize = cv2.resize(annotated_frame.copy(), (780, 780))
+    cv2.imshow('Proceso del video', img_resize)
+
+    # Wait for a key press to avoid overwhelming the display
+    cv2.waitKey(2)  # Adjust delay as needed (higher value for slower processing)
+
     return annotated_frame
-
-
-    # return trace_annotator.annotate(
-    #     annotated_frame, detections=detections)
-
-
-    # # fix labels
-    # labels = [
-    #     f"#{tracker_id}"
-    #     for class_id, tracker_id
-    #     in zip(detections.class_id, detections.tracker_id)
-    # ]
 
 
 
