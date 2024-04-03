@@ -104,7 +104,7 @@ def gooey_receiver(args=None):
 
     if args.HeatMap:
         # heat_map_annotator = sv.HeatMapAnnotator(radius=10, kernel_size=25)
-        heat_map_annotator = sv.HeatMapAnnotator(radius=10, kernel_size=25)
+        heat_map_annotator = sv.HeatMapAnnotator()
 
     selected_annotators = [
         box_annotator, label_annotator, circle_annotator, trace_annotator,
@@ -325,7 +325,7 @@ def callback(frame: np.ndarray, _: int) -> np.ndarray:
     annotated_frame = frame.copy()
     selected_annotators = [annotator for annotator in selected_annotators if annotator is not None]
 
-    cv2.imshow('Proceso del video', annotated_frame)
+    # cv2.imshow('Proceso del video', annotated_frame)
 
     for annotator in selected_annotators:
         annotated_frame = annotator.annotate(annotated_frame, detections=detections)
