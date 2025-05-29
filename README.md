@@ -7,7 +7,7 @@
 
 <h2> Instalación </h2>
 <ul>
-  <li> Descargar el proyecto como .Zip o con "git clone https://github.com/XenitalDev/proyectoTPD.git" desde el Git bash. </li>
+  <li> Descargar el proyecto como .Zip o con "git clone https://github.com/Afelipe72/proyectoTPD.git" desde el Git bash. </li>
   <li> Una vez se haya descargado el proyecto, entrar a la carpeta raiz del proyecto</li>
   <li> Correr el comando "pip install -r requirements.txt" para instalar todas las depedencias. </li>
 </ul>
